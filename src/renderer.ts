@@ -7,9 +7,15 @@ export var cameraUniformBuffer: GPUBuffer;
 export var lightDataBuffer: GPUBuffer;
 
 async function getDevice() {
+    if (!navigator.gpu) {
+        alert('Browser does not support webgpu.');
+        return;
+    }
+
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
-        console.log('NO WEBGPU FOUND')
+        console.log('NO WEBGPU FOUND');
+        alert('No webgpu adapter found.');
         return;
     }
     return await adapter.requestDevice();
