@@ -3,6 +3,7 @@
 coverage/
 dist/*
 !dist/index.html
+!dist/*.png
 node_modules/
 *.log
 

@@ -18,22 +18,16 @@ const renderer = new WebGpuRenderer();
 renderer.init(outputCanvas).then((success) => {
     if (!success) return;
 
+    // unscaled cubes
     const cube1 = new Cube({ x: -4, y: 4 }, { r: 0.9, g: 0.01, b: 0.01 });
     const cube2 = new Cube({ y: 4 }, { r: 0.01, g: 0.9, b: 0.01 });
     const cube3 = new Cube({ x: 4, y: 4 }, { r: 0.01, g: 0.01, b: 0.9 });
-
-    const cube4 = new Cube({ x: -4, scaleX: 0.5 }, { r: 0.5, g: 0.2, b: 0.2});
-    const cube5 = new Cube({ scaleY: 0.5 }, { r: 0.2, g: 0.5, b: 0.2 });
-    const cube6 = new Cube({ x: 4, scaleZ: 0.5 }, { r: 0.2, g: 0.2, b: 0.5 });
 
     scene.add(cube1);
     scene.add(cube2);
     scene.add(cube3);
 
-    scene.add(cube4);
-    scene.add(cube5);
-    scene.add(cube6);
-
+    // textured cubes
     const texturedCubes: Cube[] = [];
 
     const texture1 = document.createElement('img');
@@ -41,12 +35,45 @@ renderer.init(outputCanvas).then((success) => {
     texture1.decode().then( () => {
     
         createImageBitmap(texture1).then( (imageBitmap: ImageBitmap) => {
-            const cube7 = new Cube({ x: -4, y: -4 }, null, imageBitmap);
-            texturedCubes.push(cube7);
-            scene.add(cube7);
+            const cube = new Cube({ x: -4 , scaleY: 0.7 }, null, imageBitmap);
+            texturedCubes.push(cube);
+            scene.add(cube);
         });
     
     });
+
+    const texture2 = document.createElement('img');
+    texture2.src = './terranigma.png';
+    texture2.decode().then( () => {
+    
+        createImageBitmap(texture2).then( (imageBitmap: ImageBitmap) => {
+            const cube = new Cube({ }, null, imageBitmap);
+            texturedCubes.push(cube);
+            scene.add(cube);
+        });
+    
+    });
+
+    const texture3 = document.createElement('img');
+    texture3.src = './deno.png';
+    texture3.decode().then( () => {
+    
+        createImageBitmap(texture3).then( (imageBitmap: ImageBitmap) => {
+            const cube = new Cube({ x: 4, scaleZ: 0.8}, null, imageBitmap);
+            texturedCubes.push(cube);
+            scene.add(cube);
+        });
+    
+    });
+
+    // scaled cubes
+    const cube4 = new Cube({ x: -4, y: -4, scaleX: 0.5 }, { r: 0.5, g: 0.2, b: 0.2});
+    const cube5 = new Cube({ y: -4, scaleY: 0.5 }, { r: 0.2, g: 0.5, b: 0.2 });
+    const cube6 = new Cube({ x: 4, y: -4, scaleZ: 0.5 }, { r: 0.2, g: 0.2, b: 0.5 });
+
+    scene.add(cube4);
+    scene.add(cube5);
+    scene.add(cube6);
 
 
     const doFrame = () => {
@@ -79,20 +106,6 @@ window.onresize = () => {
     camera.aspect = outputCanvas.width / outputCanvas.height;
     renderer.update(outputCanvas);
 }
-
-
-function addCube() {
-    scene.add(new Cube({ x: (Math.random() - 0.5) * 20, y: (Math.random() - 0.5) * 10 }));
-}
-
-
-// BUTTONS
-const boxB = document.createElement('button')
-boxB.textContent = "ADD CUBE"
-boxB.classList.add('cubeButton')
-boxB.onclick = addCube
-document.body.appendChild(boxB)
-
 
 // MOUSE CONTROLS
 
