@@ -20,3 +20,6 @@ WebGPU is still in development, this example may break.
 
 ### Cube vertices
 https://threejsfundamentals.org/threejs/lessons/threejs-custom-buffergeometry.html
+
+### WebGPU Examples
+https://austin-eng.com/webgpu-samples/
