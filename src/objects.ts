@@ -63,18 +63,20 @@ const vertices = [
  * */ 
 function vertxShader(): string {
     return `
-            [[block]] struct Uniforms {
+            [[block]] struct Uniforms {     // 4x4 transform matrices
                 matrix : mat4x4<f32>;
             };
 
-            [[block]] struct Color {
+            [[block]] struct Color {        // RGB color
                 color: vec3<f32>;
             };
             
+            // bind model/camera/color buffers
             [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
             [[group(0), binding(2)]] var<uniform> cameraTransform   : Uniforms;
             [[group(0), binding(1)]] var<storage> color             : [[access(read)]]  Color;
             
+            // output struct of this vertex shader
             struct VertexOutput {
                 [[builtin(position)]] Position : vec4<f32>;
 
@@ -83,18 +85,23 @@ function vertxShader(): string {
                 [[location(2)]] uv : vec2<f32>;
                 [[location(3)]] fragPos : vec3<f32>;
             };
+
+            // input struct according to vertex buffer stride
+            struct VertexInput {
+                [[location(0)]] position : vec3<f32>;
+                [[location(1)]] norm : vec3<f32>;
+                [[location(2)]] uv : vec2<f32>;
+            };
             
             [[stage(vertex)]]
-            fn main([[location(0)]] position : vec3<f32>,
-                    [[location(1)]] norm : vec3<f32>,
-                    [[location(2)]] uv : vec2<f32>) -> VertexOutput {
+            fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
-                var transformedPosition: vec4<f32> = modelTransform.matrix * vec4<f32>(position, 1.0);
+                var transformedPosition: vec4<f32> = modelTransform.matrix * vec4<f32>(input.position, 1.0);
 
                 output.Position = cameraTransform.matrix * transformedPosition;             // transformed with model & camera projection
                 output.fragColor = color.color;                                             // fragment color from buffer
-                output.fragNorm = (modelTransform.matrix * vec4<f32>(norm, 1.0)).xyz;       // transformed normal vector with model
-                output.uv = uv;                                                             // transformed uv
+                output.fragNorm = (modelTransform.matrix * vec4<f32>(input.norm, 1.0)).xyz; // transformed normal vector with model
+                output.uv = input.uv;                                                       // transformed uv
                 output.fragPos = transformedPosition.xyz;                                   // transformed fragment position with model
 
                 return output;
