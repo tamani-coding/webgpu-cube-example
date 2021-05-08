@@ -130,28 +130,45 @@ function fragmentShader(withTexture: boolean): string {
                             `;
 
     return  `
-            [[block]] struct LightData {
+            [[block]] struct LightData {        // light xyz position
                 lightPos : vec3<f32>;
             };
 
-            struct FragmentInput {
+            struct FragmentInput {              // output from vertex stage shader
                 [[location(0)]] fragColor : vec3<f32>;
                 [[location(1)]] fragNorm : vec3<f32>;
                 [[location(2)]] uv : vec2<f32>;
                 [[location(3)]] fragPos : vec3<f32>;
             };
 
+            // bind light data buffer
             [[group(0), binding(3)]] var<uniform> lightData : LightData;
-            let ambientLightFactor : f32 = 0.5;
-            let lightRange: f32 = 2.0;
+
+            // constants for light
+            let ambientLightFactor : f32 = 0.5;     // ambient light
+            let lightRange: f32 = 20.0;             // point light range
+            let PI: f32 = 3.14159265359;            // PI constant
             `
             + bindSamplerAndTexture +
             `
             [[stage(fragment)]]
             fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-                let dirFragmentToLight : vec3<f32> = normalize(lightData.lightPos - input.fragPos * (1.0 / lightRange));
-                let lambertFactor : f32 = dot(dirFragmentToLight, input.fragNorm);
-                let lightingFactor : f32 = max(min(lambertFactor, 1.0), ambientLightFactor);
+                let lightDirection: vec3<f32> = normalize(lightData.lightPos - input.fragPos * (1.0 / lightRange));
+
+                // calculate angle between light direction and normal 
+                let dot: f32 = dot(lightDirection, input.fragNorm);
+                let normA: f32 = sqrt( pow(lightDirection.x, 2.0) + pow(lightDirection.y, 2.0) + pow(lightDirection.z, 2.0));
+                let normB: f32 = sqrt( pow(input.fragNorm.x, 2.0) + pow(input.fragNorm.y, 2.0) + pow(input.fragNorm.z, 2.0));
+                let angle: f32 = acos( dot / (normA * normB) );
+
+                let rad: f32 = PI / 4.0;
+
+                var lightFactor: f32 = 0.0;
+                if (angle < rad) {
+                    lightFactor = 1.0 - (angle / rad);
+                }
+
+                let lightingFactor: f32 = max(min(lightFactor, 1.0), ambientLightFactor);
         ` + 
                 returnStatement +
         `
