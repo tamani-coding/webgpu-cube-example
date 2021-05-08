@@ -89,12 +89,13 @@ function vertxShader(): string {
                     [[location(1)]] norm : vec3<f32>,
                     [[location(2)]] uv : vec2<f32>) -> VertexOutput {
                 var output: VertexOutput;
+                var transformedPosition: vec4<f32> = modelTransform.matrix * vec4<f32>(position, 1.0);
 
-                output.Position = cameraTransform.matrix * modelTransform.matrix * vec4<f32>(position, 1.0);    // transformed position
-                output.fragColor = color.color;                                                                 // fragment color
-                output.fragNorm = (modelTransform.matrix * vec4<f32>(norm, 1.0)).xyz;                           // transformed normal vector
-                output.uv = uv;                                                                                 // transformed uv
-                output.fragPos = output.Position.xyz;                                                           // again transformed position
+                output.Position = cameraTransform.matrix * transformedPosition;             // transformed with model & camera projection
+                output.fragColor = color.color;                                             // fragment color from buffer
+                output.fragNorm = (modelTransform.matrix * vec4<f32>(norm, 1.0)).xyz;       // transformed normal vector with model
+                output.uv = uv;                                                             // transformed uv
+                output.fragPos = transformedPosition.xyz;                                   // transformed fragment position with model
 
                 return output;
             }
@@ -116,9 +117,9 @@ function fragmentShader(withTexture: boolean): string {
 
     // conditionally do texture sampling
     const returnStatement = withTexture ? `
-                                return textureSample(myTexture, mySampler, input.uv);
+                                return vec4<f32>(textureSample(myTexture, mySampler, input.uv).xyz * lightingFactor, 1.0);
                             ` : `
-                                return vec4<f32>(input.fragColor, 1.0);
+                                return vec4<f32>(input.fragColor  * lightingFactor, 1.0);
                             `;
 
     return  `
@@ -134,13 +135,15 @@ function fragmentShader(withTexture: boolean): string {
                 [[location(3)]] fragPos : vec3<f32>;
             };
 
-            [[group(0), binding(3)]] var<uniform> lightData         : LightData;
+            [[group(0), binding(3)]] var<uniform> lightData : LightData;
+            let ambientLightFactor : f32 = 0.5;
             `
             + bindSamplerAndTexture +
             `
             [[stage(fragment)]]
             fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-                let lambertFactor : f32 = abs(dot(normalize(lightData.lightPos - input.fragPos), input.fragNorm));
+                let lambertFactor : f32 = dot(normalize(lightData.lightPos - input.fragPos), input.fragNorm);
+                let lightingFactor : f32 = max(min(lambertFactor, 1.0), ambientLightFactor);
         ` + 
                 returnStatement +
         `
