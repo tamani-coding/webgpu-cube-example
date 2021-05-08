@@ -13,7 +13,7 @@ export class Camera {
     public fovy: number = (2 * Math.PI) / 5;
     public aspect: number = 16 / 9;
 
-    public near: number = 0.2;
+    public near: number = 0.1;
     public far: number = 1000;
 
     public lookAt: vec3 = vec3.fromValues(0, 0, 0);

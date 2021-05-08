@@ -143,12 +143,14 @@ function fragmentShader(withTexture: boolean): string {
 
             [[group(0), binding(3)]] var<uniform> lightData : LightData;
             let ambientLightFactor : f32 = 0.5;
+            let lightRange: f32 = 2.0;
             `
             + bindSamplerAndTexture +
             `
             [[stage(fragment)]]
             fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-                let lambertFactor : f32 = dot(normalize(lightData.lightPos - input.fragPos), input.fragNorm);
+                let dirFragmentToLight : vec3<f32> = normalize(lightData.lightPos - input.fragPos * (1.0 / lightRange));
+                let lambertFactor : f32 = dot(dirFragmentToLight, input.fragNorm);
                 let lightingFactor : f32 = max(min(lambertFactor, 1.0), ambientLightFactor);
         ` + 
                 returnStatement +

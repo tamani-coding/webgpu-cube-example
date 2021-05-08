@@ -67,9 +67,9 @@ renderer.init(outputCanvas).then((success) => {
     });
 
     // scaled cubes
-    const cube4 = new Cube({ x: -4, y: -4, scaleX: 0.5 }, { r: 0.5, g: 0.2, b: 0.2});
-    const cube5 = new Cube({ y: -4, scaleY: 0.5 }, { r: 0.2, g: 0.5, b: 0.2 });
-    const cube6 = new Cube({ x: 4, y: -4, scaleZ: 0.5 }, { r: 0.2, g: 0.2, b: 0.5 });
+    const cube4 = new Cube({ x: -4, y: -4, scaleX: 0.5 }, { r: 1.0, g: 1.0, b: 0.2});
+    const cube5 = new Cube({ y: -4, scaleY: 0.5 }, { r: 0.2, g: 1.0, b: 1.0 });
+    const cube6 = new Cube({ x: 4, y: -4, scaleZ: 0.5 }, { r: 1.0, g: 0.2, b: 1.0 });
 
     scene.add(cube4);
     scene.add(cube5);
