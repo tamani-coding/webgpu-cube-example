@@ -1,4 +1,4 @@
-import { device } from './renderer';
+import { device, cameraUniformBuffer } from './renderer';
 import { Camera } from './camera';
 import { mat4, vec3 } from 'gl-matrix';
 
@@ -57,10 +57,11 @@ const vertices = [
   const wgslShaders = {
     vertex: `
         [[block]] struct Uniforms {
-            modelTransformMatrix : mat4x4<f32>;
+            matrix : mat4x4<f32>;
         };
         
         [[binding(0), group(0)]] var<uniform> modelTransform : Uniforms;
+        [[binding(1), group(0)]] var<uniform> cameraTransform : Uniforms;
         
         struct VertexOutput {
             [[builtin(position)]] Position : vec4<f32>;
@@ -75,11 +76,11 @@ const vertices = [
                 [[location(1)]] norm : vec3<f32>,
                 [[location(2)]] uv : vec2<f32>) -> VertexOutput {
             return VertexOutput(
-                    modelTransform.modelTransformMatrix * vec4<f32>(position, 1.0),   // vertex position
-                    vec4<f32>(0.8, 0.8, 0.0, 1.0),                              // color
-                    modelTransform.modelTransformMatrix * vec4<f32>(norm, 1.0),       // norm vector
-                    uv                                                          // uv
-                );
+                    cameraTransform.matrix * modelTransform.matrix * vec4<f32>(position, 1.0),  // vertex position
+                    vec4<f32>(0.8, 0.8, 0.0, 1.0),                                              // color
+                    modelTransform.matrix * vec4<f32>(norm, 1.0),                               // norm vector
+                    uv                                                                          // uv
+            );
         }
   `,
     fragment: `
@@ -199,6 +200,14 @@ export class Cube {
                         size: this.matrixSize,
                     },
                 },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: cameraUniformBuffer,
+                        offset: 0,
+                        size: this.matrixSize,
+                    },
+                },
             ],
         });
 
@@ -211,17 +220,17 @@ export class Cube {
         const mapping = new Float32Array(this.verticesBuffer.getMappedRange());
         for (let i = 0; i < vertices.length; i++) {
             // (3 * 4) + (3 * 4) + (2 * 4)
-            mapping.set(vertices[i].pos, ( 3 + 3 + 2 ) * i + 0);
-            mapping.set(vertices[i].norm, ( 3 + 3 + 2 ) * i + 3);
-            mapping.set(vertices[i].uv, ( 3 + 3 + 2 ) * i + 6);
+            mapping.set(vertices[i].pos, this.perVertex * i + 0);
+            mapping.set(vertices[i].norm, this.perVertex * i + 3);
+            mapping.set(vertices[i].uv, this.perVertex * i + 6);
         }
         this.verticesBuffer.unmap();
 
         this.setTransformation(parameter);
     }
 
-    public draw(passEncoder: GPURenderPassEncoder, device: GPUDevice, camera: Camera) {
-        this.updateTransformationMatrix(camera)
+    public draw(passEncoder: GPURenderPassEncoder, device: GPUDevice) {
+        this.updateTransformationMatrix()
 
         passEncoder.setPipeline(this.renderPipeline);
         device.queue.writeBuffer(
@@ -236,7 +245,7 @@ export class Cube {
         passEncoder.draw(vertices.length, 1, 0, 0);
     }
 
-    private updateTransformationMatrix(camera: Camera) {
+    private updateTransformationMatrix() {
         // MOVE / TRANSLATE OBJECT
         const modelMatrix = mat4.create();
         mat4.translate(modelMatrix, modelMatrix, vec3.fromValues(this.x, this.y, this.z))
@@ -245,7 +254,7 @@ export class Cube {
         mat4.rotateZ(modelMatrix, modelMatrix, this.rotZ);
 
         // PROJECT ON CAMERA
-        mat4.multiply(this.modelViewProjectionMatrix, camera.getCameraViewProjMatrix(), modelMatrix);
+        mat4.copy(this.modelViewProjectionMatrix, modelMatrix)
     }
 
     private setTransformation(parameter?: CubeParameter) {

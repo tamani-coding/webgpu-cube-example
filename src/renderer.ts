@@ -2,6 +2,7 @@ import { Scene } from './scene';
 import { Camera } from './camera';
 
 export var device: GPUDevice;
+export var cameraUniformBuffer: GPUBuffer;
 
 async function getDevice() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -18,6 +19,8 @@ export class WebGpuRenderer {
     private initSuccess: boolean = false;
     private swapChain: GPUSwapChain;
     private renderPassDescriptor: GPURenderPassDescriptor;
+
+    private matrixSize = 4 * 16; // 4x4 matrix
 
     constructor() { }
 
@@ -58,6 +61,11 @@ export class WebGpuRenderer {
             } as GPURenderPassDepthStencilAttachmentNew,
         };
 
+        cameraUniformBuffer = device.createBuffer({
+            size: this.matrixSize,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+
         return this.initSuccess = true;
     }
 
@@ -74,6 +82,15 @@ export class WebGpuRenderer {
             return;
         }
 
+        const cameraViewProjectionMatrix = camera.getCameraViewProjMatrix() as Float32Array;
+        device.queue.writeBuffer(
+            cameraUniformBuffer,
+            0,
+            cameraViewProjectionMatrix.buffer,
+            cameraViewProjectionMatrix.byteOffset,
+            cameraViewProjectionMatrix.byteLength
+        );
+
         (this.renderPassDescriptor.colorAttachments as [GPURenderPassColorAttachmentNew])[0].view = this.swapChain
             .getCurrentTexture()
             .createView();
@@ -82,7 +99,7 @@ export class WebGpuRenderer {
         const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
         for (let object of scene.getObjects()) {
-            object.draw(passEncoder, device, camera)
+            object.draw(passEncoder, device)
         }
 
         passEncoder.endPass();

@@ -17,15 +17,24 @@ const renderer = new WebGpuRenderer();
 renderer.init(outputCanvas).then((success) => {
     if (!success) return;
 
-    scene.add(new Cube());
+    const cube1 = new Cube({x: -4});
+    const cube2 = new Cube();
+    const cube3 = new Cube({x: 4});
+
+    scene.add(cube1);
+    scene.add(cube2);
+    scene.add(cube3);
 
     const doFrame = () => {
         // ANIMATE
         const now = Date.now() / 1000;
-        for (let object of scene.getObjects()) {
-            object.rotX = Math.sin(now)
-            object.rotZ = Math.cos(now)
-        }
+        // for (let object of scene.getObjects()) {
+        //     object.rotX = Math.sin(now)
+        //     object.rotZ = Math.cos(now)
+        // }
+        cube1.rotX = Math.sin(now)
+        cube2.rotY = Math.sin(now)
+        cube3.rotZ = Math.sin(now)
 
         // RENDER
         renderer.frame(camera, scene);
