@@ -110,13 +110,13 @@ function vertxShader(): string {
 }
 
 /**
- * This shaders receives the output of the vertex shader program.
- * If texture is set, the sampler and texture is binded to this shader (conditionally).
- * Determines the color of the current fragment, takes into account light.
+ * This shader receives the output of the vertex shader program.
+ * If texture is set, the sampler and texture is binded to this shader.
+ * Determines the color of the current fragment, takes into account point light.
  * 
  */
 function fragmentShader(withTexture: boolean): string {
-    // conditionally bind sampler and texture
+    // conditionally bind sampler and texture, only if texture is set
     const bindSamplerAndTexture = withTexture ? `
                 [[group(0), binding(4)]] var mySampler: sampler;
                 [[group(0), binding(5)]] var myTexture: texture_2d<f32>;

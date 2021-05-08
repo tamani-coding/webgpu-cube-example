@@ -123,7 +123,11 @@ window.onresize = () => {
 
 // ZOOM
 outputCanvas.onwheel = (event: WheelEvent) => {
-    camera.z += event.deltaY / 100
+    const delta = event.deltaY / 100;
+    // no negative camera.z
+    if(camera.z > -delta) {
+        camera.z += event.deltaY / 100
+    }
 }
 
 // MOUSE DRAG
