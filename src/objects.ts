@@ -54,49 +54,68 @@ const vertices = [
     { pos: [-1, -1, -1], norm: [ 0, -1,  0], uv: [1, 1], },
   ];
 
-  const wgslShaders = {
-    vertex: `
-        [[block]] struct Uniforms {
-            matrix : mat4x4<f32>;
-        };
+function vertxShader(): string {
+    return `
+            [[block]] struct Uniforms {
+                matrix : mat4x4<f32>;
+            };
 
-        [[block]] struct Color {
-            color: vec3<f32>;
-        };
-        
-        [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
-        [[group(0), binding(2)]] var<uniform> cameraTransform   : Uniforms;
-        [[group(0), binding(1)]] var<storage> color             : [[access(read)]]  Color;
-        
-        struct VertexOutput {
-            [[builtin(position)]] Position : vec4<f32>;
+            [[block]] struct Color {
+                color: vec3<f32>;
+            };
+            
+            [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
+            [[group(0), binding(2)]] var<uniform> cameraTransform   : Uniforms;
+            [[group(0), binding(1)]] var<storage> color             : [[access(read)]]  Color;
+            
+            struct VertexOutput {
+                [[builtin(position)]] Position : vec4<f32>;
 
-            [[location(0)]] fragColor : vec4<f32>;
-            [[location(1)]] norm : vec4<f32>;
-            [[location(2)]] uv : vec2<f32>;
-        };
-        
-        [[stage(vertex)]]
-        fn main([[location(0)]] position : vec3<f32>,
-                [[location(1)]] norm : vec3<f32>,
-                [[location(2)]] uv : vec2<f32>) -> VertexOutput {
-            return VertexOutput(
-                    cameraTransform.matrix * modelTransform.matrix * vec4<f32>(position, 1.0),  // vertex position
-                    vec4<f32>(color.color.xyz, 1.0),                                            // color
-                    modelTransform.matrix * vec4<f32>(norm, 1.0),                               // norm vector
-                    uv                                                                          // uv
-            );
-        }
-  `,
-    fragment: `
-        [[stage(fragment)]]
-        fn main([[location(0)]] fragColor : vec4<f32>,
-                [[location(1)]] norm : vec4<f32>,
-                [[location(2)]] uv : vec2<f32>) -> [[location(0)]] vec4<f32> {
-            return fragColor;
-        }
-  `,
-};
+                [[location(0)]] fragColor : vec4<f32>;
+                [[location(1)]] norm : vec4<f32>;
+                [[location(2)]] uv : vec2<f32>;
+            };
+            
+            [[stage(vertex)]]
+            fn main([[location(0)]] position : vec3<f32>,
+                    [[location(1)]] norm : vec3<f32>,
+                    [[location(2)]] uv : vec2<f32>) -> VertexOutput {
+                return VertexOutput(
+                        cameraTransform.matrix * modelTransform.matrix * vec4<f32>(position, 1.0),  // vertex position
+                        vec4<f32>(color.color.xyz, 1.0),                                            // color
+                        modelTransform.matrix * vec4<f32>(norm, 1.0),                               // norm vector
+                        uv,                                                                         // uv
+                );
+            }
+        `;
+}
+
+function fragmentShader(withTexture: boolean): string {
+    // conditionally bind sampler and texture
+    const bind = withTexture ? `
+                [[group(0), binding(3)]] var mySampler: sampler;
+                [[group(0), binding(4)]] var myTexture: texture_2d<f32>;
+            ` : ``;
+
+    // conditionally do texture sampling
+    const returnStatement = withTexture ? `
+                                return textureSample(myTexture, mySampler, uv);
+                            ` : `
+                                return fragColor;
+                            `;
+
+    return  bind +
+            `
+            [[stage(fragment)]]
+            fn main([[location(0)]] fragColor : vec4<f32>,
+                    [[location(1)]] norm : vec4<f32>,
+                    [[location(2)]] uv : vec2<f32>) -> [[location(0)]] vec4<f32> {
+        ` + 
+                returnStatement +
+        `
+            }
+        `;
+}
 
 export interface CubeParameter {
 
@@ -156,11 +175,11 @@ export class Cube {
     private perVertex = ( 3 + 3 + 2 );      // 3 for position, 3 for normal, 2 for uv, 3 for color
     private stride = this.perVertex * 4;    // stride = byte length of vertex data array 
 
-    constructor(parameter?: CubeParameter, color?: Color) {
+    constructor(parameter?: CubeParameter, color?: Color, imageBitmap?: ImageBitmap) {
         this.renderPipeline = device.createRenderPipeline({
             vertex: {
                 module: device.createShaderModule({
-                    code: wgslShaders.vertex,
+                    code: vertxShader(),
                 }),
                 entryPoint: 'main',
                 buffers: [
@@ -191,7 +210,7 @@ export class Cube {
             },
             fragment: {
                 module: device.createShaderModule({
-                    code: wgslShaders.fragment,
+                    code: fragmentShader(imageBitmap != null),
                 }),
                 entryPoint: 'main',
                 targets: [
@@ -204,6 +223,8 @@ export class Cube {
                 topology: 'triangle-list',
                 cullMode: 'back',
             },
+            // Enable depth testing so that the fragment closest to the camera
+            // is rendered in front.
             depthStencil: {
                 depthWriteEnabled: true,
                 depthCompare: 'less',
@@ -225,34 +246,65 @@ export class Cube {
         colorMapping.set(color ? [color.r, color.g, color.b] : [this.defaultColor.r, this.defaultColor.g, this.defaultColor.b], 0);
         this.colorBuffer.unmap()
 
+        const entries = [
+            {
+                binding: 0,
+                resource: {
+                    buffer: this.uniformBuffer,
+                    offset: 0,
+                    size: this.matrixSize,
+                },
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: this.colorBuffer ,
+                    offset: 0,
+                    size: Float32Array.BYTES_PER_ELEMENT * 3,
+                },
+            },
+            {
+                binding: 2,
+                resource: {
+                    buffer: cameraUniformBuffer,
+                    offset: 0,
+                    size: this.matrixSize,
+                },
+            },
+            
+        ];
+
+        // Texture
+        if (imageBitmap) {
+            let cubeTexture = device.createTexture({
+                size: [imageBitmap.width, imageBitmap.height, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST,
+            });
+            device.queue.copyImageBitmapToTexture(
+                { imageBitmap },
+                { texture: cubeTexture },
+                [imageBitmap.width, imageBitmap.height, 1]
+            );
+            const sampler = device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+            });
+
+            entries.push({
+                binding: 3,
+                resource: sampler,
+            } as any)
+            entries.push({
+                binding: 4,
+                resource: cubeTexture.createView(),
+            } as any);
+
+        }
+
         this.uniformBindGroup = device.createBindGroup({
             layout: this.renderPipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: this.uniformBuffer,
-                        offset: 0,
-                        size: this.matrixSize,
-                    },
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: this.colorBuffer ,
-                        offset: 0,
-                        size: Float32Array.BYTES_PER_ELEMENT * 3,
-                    },
-                },
-                {
-                    binding: 2,
-                    resource: {
-                        buffer: cameraUniformBuffer,
-                        offset: 0,
-                        size: this.matrixSize,
-                    },
-                },
-            ],
+            entries: entries as Iterable<GPUBindGroupEntry>,
         });
 
         this.verticesBuffer = device.createBuffer({

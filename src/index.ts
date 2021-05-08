@@ -3,6 +3,7 @@ import { Scene } from './scene';
 import { Camera } from './camera';
 import { WebGpuRenderer } from './renderer'
 
+
 const outputCanvas = document.createElement('canvas')
 outputCanvas.width = window.innerWidth
 outputCanvas.height = window.innerHeight
@@ -33,13 +34,25 @@ renderer.init(outputCanvas).then((success) => {
     scene.add(cube5);
     scene.add(cube6);
 
+    const texturedCubes: Cube[] = [];
+
+    const texture1 = document.createElement('img');
+    texture1.src = './crocodile_gena.png';
+    texture1.decode().then( () => {
+    
+        createImageBitmap(texture1).then( (imageBitmap: ImageBitmap) => {
+            const cube7 = new Cube({ x: -4, y: -4 }, null, imageBitmap);
+            texturedCubes.push(cube7);
+            scene.add(cube7);
+        });
+    
+    });
+
+
     const doFrame = () => {
         // ANIMATE
         const now = Date.now() / 1000;
-        // for (let object of scene.getObjects()) {
-        //     object.rotX = Math.sin(now)
-        //     object.rotZ = Math.cos(now)
-        // }
+
         cube1.rotX = Math.cos(now)
         cube2.rotY = Math.cos(now)
         cube3.rotZ = Math.cos(now)
@@ -47,6 +60,11 @@ renderer.init(outputCanvas).then((success) => {
         cube4.rotX = Math.sin(now)
         cube5.rotY = Math.sin(now)
         cube6.rotZ = Math.sin(now)
+
+        for (let c of texturedCubes) {
+            c.rotX = Math.cos(now);
+            c.rotY = Math.sin(now);
+        }
 
         // RENDER
         renderer.frame(camera, scene);
