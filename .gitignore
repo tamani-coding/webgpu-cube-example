@@ -1,9 +1,7 @@
 
 .cache/
 coverage/
-dist/*
-!dist/index.html
-!dist/*.png
+dist/*.js
 node_modules/
 *.log
 
