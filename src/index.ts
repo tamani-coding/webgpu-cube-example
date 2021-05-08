@@ -75,7 +75,9 @@ renderer.init(outputCanvas).then((success) => {
     scene.add(cube5);
     scene.add(cube6);
 
-    const lightDebugCube = new Cube({ scaleX: 0.1, scaleY: 0.1, scaleZ: 0.1 },{r: 0.9, g: 0.9, b: 0.0});
+    const lightDebugCube = new Cube({ scaleX: 0.1, scaleY: 0.1, scaleZ: 0.1 },{r: 1.0, g: 1.0, b: 0.0});
+    lightDebugCube.rotX = Math.PI / 4;
+    lightDebugCube.rotZ = Math.PI / 4;
     scene.add(lightDebugCube)
 
     const doFrame = () => {
@@ -95,10 +97,10 @@ renderer.init(outputCanvas).then((success) => {
             c.rotY = Math.sin(now);
         }
 
-        scene.lightPosition[0] = Math.cos(now) * 4;
-        scene.lightPosition[1] = Math.sin(now) * 4;
-        scene.lightPosition[2] = 1;
-
+        // MOVE LIGHT AND LIGHT DEBUG CUBE
+        scene.pointLightPosition[0] = Math.cos(now) * 4;
+        scene.pointLightPosition[1] = Math.sin(now) * 4;
+        scene.pointLightPosition[2] = 1;
         lightDebugCube.x = Math.cos(now) * 3.5;
         lightDebugCube.y = Math.sin(now) * 3.5;
         lightDebugCube.z = 2;

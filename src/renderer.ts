@@ -100,18 +100,10 @@ export class WebGpuRenderer {
         );
 
         // LIGHT BUFFER
-        const lightMatrixData = scene.getLightMatrixData() as Float32Array;
+        const lightPosition = scene.getPointLightPosition();
         device.queue.writeBuffer(
             lightDataBuffer,
           0,
-          lightMatrixData.buffer,
-          lightMatrixData.byteOffset,
-          lightMatrixData.byteLength
-        );
-        const lightPosition = scene.getLightPosition();
-        device.queue.writeBuffer(
-            lightDataBuffer,
-          64,
           lightPosition.buffer,
           lightPosition.byteOffset,
           lightPosition.byteLength

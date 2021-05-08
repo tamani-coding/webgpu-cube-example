@@ -124,7 +124,6 @@ function fragmentShader(withTexture: boolean): string {
 
     return  `
             [[block]] struct LightData {
-                lightViewProjMatrix : mat4x4<f32>;
                 lightPos : vec3<f32>;
             };
 
