@@ -57,25 +57,36 @@ const vertices = [
   const wgslShaders = {
     vertex: `
         [[block]] struct Uniforms {
-            modelViewProjectionMatrix : mat4x4<f32>;
+            modelTransformMatrix : mat4x4<f32>;
         };
         
-        [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+        [[binding(0), group(0)]] var<uniform> modelTransform : Uniforms;
         
         struct VertexOutput {
             [[builtin(position)]] Position : vec4<f32>;
 
             [[location(0)]] fragColor : vec4<f32>;
+            [[location(1)]] norm : vec4<f32>;
+            [[location(2)]] uv : vec2<f32>;
         };
         
         [[stage(vertex)]]
-        fn main([[location(0)]] position : vec3<f32>) -> VertexOutput {
-            return VertexOutput(uniforms.modelViewProjectionMatrix * vec4<f32>(position, 1.0), vec4<f32>(0.8, 0.8, 0.0, 1.0));
+        fn main([[location(0)]] position : vec3<f32>,
+                [[location(1)]] norm : vec3<f32>,
+                [[location(2)]] uv : vec2<f32>) -> VertexOutput {
+            return VertexOutput(
+                    modelTransform.modelTransformMatrix * vec4<f32>(position, 1.0),   // vertex position
+                    vec4<f32>(0.8, 0.8, 0.0, 1.0),                              // color
+                    modelTransform.modelTransformMatrix * vec4<f32>(norm, 1.0),       // norm vector
+                    uv                                                          // uv
+                );
         }
   `,
     fragment: `
         [[stage(fragment)]]
-        fn main([[location(0)]] fragColor : vec4<f32>) -> [[location(0)]] vec4<f32> {
+        fn main([[location(0)]] fragColor : vec4<f32>,
+                [[location(1)]] norm : vec4<f32>,
+                [[location(2)]] uv : vec2<f32>) -> [[location(0)]] vec4<f32> {
             return fragColor;
         }
   `,
