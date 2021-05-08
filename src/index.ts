@@ -67,9 +67,9 @@ renderer.init(outputCanvas).then((success) => {
     });
 
     // scaled cubes
-    const cube4 = new Cube({ x: -4, y: -4, scaleX: 0.5 }, { r: 1.0, g: 1.0, b: 0.2});
-    const cube5 = new Cube({ y: -4, scaleY: 0.5 }, { r: 0.2, g: 1.0, b: 1.0 });
-    const cube6 = new Cube({ x: 4, y: -4, scaleZ: 0.5 }, { r: 1.0, g: 0.2, b: 1.0 });
+    const cube4 = new Cube({ x: -4, y: -4, scaleX: 0.8 }, { r: 1.0, g: 1.0, b: 0.2});
+    const cube5 = new Cube({ y: -4, scaleY: 0.8 }, { r: 0.2, g: 1.0, b: 1.0 });
+    const cube6 = new Cube({ x: 4, y: -4, scaleZ: 0.8 }, { r: 1.0, g: 0.2, b: 1.0 });
 
     scene.add(cube4);
     scene.add(cube5);
@@ -90,6 +90,7 @@ renderer.init(outputCanvas).then((success) => {
 
         cube4.rotX = Math.sin(now)
         cube5.rotY = Math.sin(now)
+        cube5.rotX = 0.25
         cube6.rotZ = Math.sin(now)
 
         for (let c of texturedCubes) {
@@ -100,9 +101,9 @@ renderer.init(outputCanvas).then((success) => {
         // MOVE LIGHT AND LIGHT DEBUG CUBE
         scene.pointLightPosition[0] = Math.cos(now) * 4;
         scene.pointLightPosition[1] = Math.sin(now) * 4;
-        scene.pointLightPosition[2] = 1;
-        lightDebugCube.x = Math.cos(now) * 3.5;
-        lightDebugCube.y = Math.sin(now) * 3.5;
+        scene.pointLightPosition[2] = 2;
+        lightDebugCube.x = Math.cos(now) * 4;
+        lightDebugCube.y = Math.sin(now) * 4;
         lightDebugCube.z = 2;
 
         // RENDER

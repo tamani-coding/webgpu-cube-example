@@ -145,28 +145,33 @@ function fragmentShader(withTexture: boolean): string {
             [[group(0), binding(3)]] var<uniform> lightData : LightData;
 
             // constants for light
-            let ambientLightFactor : f32 = 0.5;     // ambient light
-            let lightRange: f32 = 20.0;             // point light range
+            let ambientLightFactor : f32 = 0.25;     // ambient light
+            let lightRange: f32 = 4.0;             // point light range
             let PI: f32 = 3.14159265359;            // PI constant
             `
             + bindSamplerAndTexture +
             `
             [[stage(fragment)]]
             fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-                let lightDirection: vec3<f32> = normalize(lightData.lightPos - input.fragPos * (1.0 / lightRange));
+                let lightDirection: vec3<f32> = normalize(lightData.lightPos - input.fragPos);
+                let fnormal: vec3<f32> = vec3<f32>(0.0,0.0,-1.0);
 
-                // calculate angle between light direction and normal 
-                let dot: f32 = dot(lightDirection, input.fragNorm);
+                // calculate angle between light direction and fragment normal 
+                let dot: f32 = dot(input.fragNorm, lightDirection);
                 let normA: f32 = sqrt( pow(lightDirection.x, 2.0) + pow(lightDirection.y, 2.0) + pow(lightDirection.z, 2.0));
                 let normB: f32 = sqrt( pow(input.fragNorm.x, 2.0) + pow(input.fragNorm.y, 2.0) + pow(input.fragNorm.z, 2.0));
                 let angle: f32 = acos( dot / (normA * normB) );
 
-                let rad: f32 = PI / 4.0;
+                // lambert factor
+                let lambertFactor : f32 = dot(lightDirection, input.fragNorm);
+
+                let th1: f32 = PI / 2.0;
+                let th2: f32 = PI + PI / 2.0;
 
                 var lightFactor: f32 = 0.0;
-                if (angle < rad) {
-                    lightFactor = 1.0 - (angle / rad);
-                }
+                // if (angle < th1 || angle > th2) {
+                    lightFactor = lambertFactor;
+                // }
 
                 let lightingFactor: f32 = max(min(lightFactor, 1.0), ambientLightFactor);
         ` + 
@@ -235,6 +240,8 @@ export class Cube {
     private stride = this.perVertex * 4;    // stride = byte length of vertex data array 
 
     constructor(parameter?: CubeParameter, color?: Color, imageBitmap?: ImageBitmap) {
+        this.setTransformation(parameter);
+
         this.renderPipeline = device.createRenderPipeline({
             vertex: {
                 module: device.createShaderModule({
@@ -383,13 +390,13 @@ export class Cube {
         const mapping = new Float32Array(this.verticesBuffer.getMappedRange());
         for (let i = 0; i < vertices.length; i++) {
             // (3 * 4) + (3 * 4) + (2 * 4)
-            mapping.set(vertices[i].pos, this.perVertex * i + 0);
+            mapping.set([vertices[i].pos[0] * this.scaleX, 
+                        vertices[i].pos[1] * this.scaleY, 
+                        vertices[i].pos[2] * this.scaleZ], this.perVertex * i + 0);
             mapping.set(vertices[i].norm, this.perVertex * i + 3);
             mapping.set(vertices[i].uv, this.perVertex * i + 6);
         }
         this.verticesBuffer.unmap();
-
-        this.setTransformation(parameter);
     }
 
     public draw(passEncoder: GPURenderPassEncoder, device: GPUDevice) {
@@ -415,7 +422,6 @@ export class Cube {
         mat4.rotateX(modelMatrix, modelMatrix, this.rotX);
         mat4.rotateY(modelMatrix, modelMatrix, this.rotY);
         mat4.rotateZ(modelMatrix, modelMatrix, this.rotZ);
-        mat4.scale(modelMatrix, modelMatrix, vec3.fromValues(this.scaleX, this.scaleY, this.scaleZ))
 
         // APPLY
         mat4.copy(this.modelViewProjectionMatrix, modelMatrix)
