@@ -17,9 +17,9 @@ const renderer = new WebGpuRenderer();
 renderer.init(outputCanvas).then((success) => {
     if (!success) return;
 
-    const cube1 = new Cube({x: -4, scaleX: 0.5});
-    const cube2 = new Cube({scaleY: 0.5});
-    const cube3 = new Cube({x: 4, scaleZ: 0.5});
+    const cube1 = new Cube({ x: -4, scaleX: 0.5 }, { r: 0.9, g: 0.01, b: 0.01 });
+    const cube2 = new Cube({ scaleY: 0.5 }, { r: 0.01, g: 0.9, b: 0.01 });
+    const cube3 = new Cube({ x: 4, scaleZ: 0.5 }, { r: 0.01, g: 0.01, b: 0.9 });
 
     scene.add(cube1);
     scene.add(cube2);

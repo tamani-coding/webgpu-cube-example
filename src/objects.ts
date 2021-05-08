@@ -74,10 +74,11 @@ const vertices = [
         [[stage(vertex)]]
         fn main([[location(0)]] position : vec3<f32>,
                 [[location(1)]] norm : vec3<f32>,
-                [[location(2)]] uv : vec2<f32>) -> VertexOutput {
+                [[location(2)]] uv : vec2<f32>,
+                [[location(3)]] color : vec3<f32>) -> VertexOutput {
             return VertexOutput(
                     cameraTransform.matrix * modelTransform.matrix * vec4<f32>(position, 1.0),  // vertex position
-                    vec4<f32>(0.8, 0.8, 0.0, 1.0),                                              // color
+                    vec4<f32>(color.x, color.y, color.z, 1.0),                                                  // color
                     modelTransform.matrix * vec4<f32>(norm, 1.0),                               // norm vector
                     uv                                                                          // uv
             );
@@ -108,6 +109,14 @@ export interface CubeParameter {
     scaleZ?: number;
 }
 
+export interface Color {
+
+    r: number;
+    g: number;
+    b: number;
+
+}
+
 export class Cube {
 
     public x: number = 0;
@@ -122,6 +131,12 @@ export class Cube {
     public scaleY: number = 1;
     public scaleZ: number = 1;
 
+    private defaultColor: Color = {
+        r: 0.8,
+        g: 0.8,
+        b: 0.8,
+    }
+
     private matrixSize = 4 * 16; // 4x4 matrix
     private offset = 256; // uniformBindGroup offset must be 256-byte aligned
     private uniformBufferSize = this.offset + this.matrixSize;
@@ -133,10 +148,10 @@ export class Cube {
     private uniformBindGroup: GPUBindGroup;
     private verticesBuffer: GPUBuffer;
 
-    private perVertex = ( 3 + 3 + 2 );      // 3 for position, 3 for normal, 2 for uv
+    private perVertex = ( 3 + 3 + 2 + 3 );      // 3 for position, 3 for normal, 2 for uv, 3 for color
     private stride = this.perVertex * 4;    // stride = byte length of vertex data array 
 
-    constructor(parameter?: CubeParameter) {
+    constructor(parameter?: CubeParameter, color?: Color) {
         this.renderPipeline = device.createRenderPipeline({
             vertex: {
                 module: device.createShaderModule({
@@ -164,6 +179,12 @@ export class Cube {
                                 shaderLocation: 2,
                                 offset: (3 + 3) * 4,
                                 format: 'float32x2',
+                            },
+                            {
+                                // color
+                                shaderLocation: 3,
+                                offset: (3 + 3 + 2) * 4,
+                                format: 'float32x3',
                             },
                         ],
                     } as GPUVertexBufferLayout,
@@ -230,6 +251,8 @@ export class Cube {
             mapping.set(vertices[i].pos, this.perVertex * i + 0);
             mapping.set(vertices[i].norm, this.perVertex * i + 3);
             mapping.set(vertices[i].uv, this.perVertex * i + 6);
+            mapping.set(color ? [color.r, color.g, color.b] : [this.defaultColor.r, this.defaultColor.g, this.defaultColor.b], 
+                    this.perVertex * i + 8);
         }
         this.verticesBuffer.unmap();
 
