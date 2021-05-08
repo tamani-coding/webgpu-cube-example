@@ -99,11 +99,11 @@ renderer.init(outputCanvas).then((success) => {
         }
 
         // MOVE LIGHT AND LIGHT DEBUG CUBE
-        scene.pointLightPosition[0] = Math.cos(now) * 4;
-        scene.pointLightPosition[1] = Math.sin(now) * 4;
+        scene.pointLightPosition[0] = Math.cos(now) * 5;
+        scene.pointLightPosition[1] = Math.sin(now) * 5;
         scene.pointLightPosition[2] = 2;
-        lightDebugCube.x = Math.cos(now) * 4;
-        lightDebugCube.y = Math.sin(now) * 4;
+        lightDebugCube.x = Math.cos(now) * 5;
+        lightDebugCube.y = Math.sin(now) * 5;
         lightDebugCube.z = 2;
 
         // RENDER

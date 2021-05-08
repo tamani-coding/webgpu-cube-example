@@ -146,32 +146,18 @@ function fragmentShader(withTexture: boolean): string {
 
             // constants for light
             let ambientLightFactor : f32 = 0.25;     // ambient light
-            let lightRange: f32 = 4.0;             // point light range
-            let PI: f32 = 3.14159265359;            // PI constant
             `
             + bindSamplerAndTexture +
             `
             [[stage(fragment)]]
             fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
                 let lightDirection: vec3<f32> = normalize(lightData.lightPos - input.fragPos);
-                let fnormal: vec3<f32> = vec3<f32>(0.0,0.0,-1.0);
-
-                // calculate angle between light direction and fragment normal 
-                let dot: f32 = dot(input.fragNorm, lightDirection);
-                let normA: f32 = sqrt( pow(lightDirection.x, 2.0) + pow(lightDirection.y, 2.0) + pow(lightDirection.z, 2.0));
-                let normB: f32 = sqrt( pow(input.fragNorm.x, 2.0) + pow(input.fragNorm.y, 2.0) + pow(input.fragNorm.z, 2.0));
-                let angle: f32 = acos( dot / (normA * normB) );
 
                 // lambert factor
                 let lambertFactor : f32 = dot(lightDirection, input.fragNorm);
 
-                let th1: f32 = PI / 2.0;
-                let th2: f32 = PI + PI / 2.0;
-
                 var lightFactor: f32 = 0.0;
-                // if (angle < th1 || angle > th2) {
-                    lightFactor = lambertFactor;
-                // }
+                lightFactor = lambertFactor;
 
                 let lightingFactor: f32 = max(min(lightFactor, 1.0), ambientLightFactor);
         ` + 
