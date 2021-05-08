@@ -17,13 +17,21 @@ const renderer = new WebGpuRenderer();
 renderer.init(outputCanvas).then((success) => {
     if (!success) return;
 
-    const cube1 = new Cube({ x: -4, scaleX: 0.5 }, { r: 0.9, g: 0.01, b: 0.01 });
-    const cube2 = new Cube({ scaleY: 0.5 }, { r: 0.01, g: 0.9, b: 0.01 });
-    const cube3 = new Cube({ x: 4, scaleZ: 0.5 }, { r: 0.01, g: 0.01, b: 0.9 });
+    const cube1 = new Cube({ x: -4, y: 4 }, { r: 0.9, g: 0.01, b: 0.01 });
+    const cube2 = new Cube({ y: 4 }, { r: 0.01, g: 0.9, b: 0.01 });
+    const cube3 = new Cube({ x: 4, y: 4 }, { r: 0.01, g: 0.01, b: 0.9 });
+
+    const cube4 = new Cube({ x: -4, scaleX: 0.5 }, { r: 0.5, g: 0.2, b: 0.2});
+    const cube5 = new Cube({ scaleY: 0.5 }, { r: 0.2, g: 0.5, b: 0.2 });
+    const cube6 = new Cube({ x: 4, scaleZ: 0.5 }, { r: 0.2, g: 0.2, b: 0.5 });
 
     scene.add(cube1);
     scene.add(cube2);
     scene.add(cube3);
+
+    scene.add(cube4);
+    scene.add(cube5);
+    scene.add(cube6);
 
     const doFrame = () => {
         // ANIMATE
@@ -32,9 +40,13 @@ renderer.init(outputCanvas).then((success) => {
         //     object.rotX = Math.sin(now)
         //     object.rotZ = Math.cos(now)
         // }
-        cube1.rotX = Math.sin(now)
-        cube2.rotY = Math.sin(now)
-        cube3.rotZ = Math.sin(now)
+        cube1.rotX = Math.cos(now)
+        cube2.rotY = Math.cos(now)
+        cube3.rotZ = Math.cos(now)
+
+        cube4.rotX = Math.sin(now)
+        cube5.rotY = Math.sin(now)
+        cube6.rotZ = Math.sin(now)
 
         // RENDER
         renderer.frame(camera, scene);
