@@ -64,6 +64,11 @@ const vertices = [
 function vertxShader(): string {
     return `
             [[block]] struct Uniforms {     // 4x4 transform matrices
+                transform : mat4x4<f32>;    // translate AND rotate
+                rotate : mat4x4<f32>;       // rotate only
+            };
+
+            [[block]] struct Camera {     // 4x4 transform matrix
                 matrix : mat4x4<f32>;
             };
 
@@ -73,7 +78,7 @@ function vertxShader(): string {
             
             // bind model/camera/color buffers
             [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
-            [[group(0), binding(2)]] var<uniform> cameraTransform   : Uniforms;
+            [[group(0), binding(2)]] var<uniform> cameraTransform   : Camera;
             [[group(0), binding(1)]] var<storage> color             : [[access(read)]]  Color;
             
             // output struct of this vertex shader
@@ -96,11 +101,11 @@ function vertxShader(): string {
             [[stage(vertex)]]
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
-                var transformedPosition: vec4<f32> = modelTransform.matrix * vec4<f32>(input.position, 1.0);
+                var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(input.position, 1.0);
 
                 output.Position = cameraTransform.matrix * transformedPosition;             // transformed with model & camera projection
                 output.fragColor = color.color;                                             // fragment color from buffer
-                output.fragNorm = (modelTransform.matrix * vec4<f32>(input.norm, 1.0)).xyz; // transformed normal vector with model
+                output.fragNorm = (modelTransform.rotate * vec4<f32>(input.norm, 1.0)).xyz; // transformed normal vector with model
                 output.uv = input.uv;                                                       // transformed uv
                 output.fragPos = transformedPosition.xyz;                                   // transformed fragment position with model
 
@@ -212,9 +217,10 @@ export class Cube {
 
     private matrixSize = 4 * 16; // 4x4 matrix
     private offset = 256; // uniformBindGroup offset must be 256-byte aligned
-    private uniformBufferSize = this.offset + this.matrixSize;
+    private uniformBufferSize = this.offset + 2 * this.matrixSize;
 
-    private modelViewProjectionMatrix = mat4.create() as Float32Array;
+    private transformMatrix = mat4.create() as Float32Array;
+    private rotateMatrix = mat4.create() as Float32Array;
 
     private renderPipeline: GPURenderPipeline;
     private uniformBuffer: GPUBuffer;
@@ -304,7 +310,7 @@ export class Cube {
                 resource: {
                     buffer: this.uniformBuffer,
                     offset: 0,
-                    size: this.matrixSize,
+                    size: this.matrixSize * 2,
                 },
             },
             {
@@ -392,9 +398,16 @@ export class Cube {
         device.queue.writeBuffer(
             this.uniformBuffer,
             0,
-            this.modelViewProjectionMatrix.buffer,
-            this.modelViewProjectionMatrix.byteOffset,
-            this.modelViewProjectionMatrix.byteLength
+            this.transformMatrix.buffer,
+            this.transformMatrix.byteOffset,
+            this.transformMatrix.byteLength
+        );
+        device.queue.writeBuffer(
+            this.uniformBuffer,
+            64,
+            this.rotateMatrix.buffer,
+            this.rotateMatrix.byteOffset,
+            this.rotateMatrix.byteLength
         );
         passEncoder.setVertexBuffer(0, this.verticesBuffer);
         passEncoder.setBindGroup(0, this.uniformBindGroup);
@@ -403,14 +416,21 @@ export class Cube {
 
     private updateTransformationMatrix() {
         // MOVE / TRANSLATE OBJECT
-        const modelMatrix = mat4.create();
-        mat4.translate(modelMatrix, modelMatrix, vec3.fromValues(this.x, this.y, this.z))
-        mat4.rotateX(modelMatrix, modelMatrix, this.rotX);
-        mat4.rotateY(modelMatrix, modelMatrix, this.rotY);
-        mat4.rotateZ(modelMatrix, modelMatrix, this.rotZ);
+        const transform = mat4.create();
+        const rotate = mat4.create();
+
+        mat4.translate(transform, transform, vec3.fromValues(this.x, this.y, this.z))
+        mat4.rotateX(transform, transform, this.rotX);
+        mat4.rotateY(transform, transform, this.rotY);
+        mat4.rotateZ(transform, transform, this.rotZ);
+
+        mat4.rotateX(rotate, rotate, this.rotX);
+        mat4.rotateY(rotate, rotate, this.rotY);
+        mat4.rotateZ(rotate, rotate, this.rotZ);
 
         // APPLY
-        mat4.copy(this.modelViewProjectionMatrix, modelMatrix)
+        mat4.copy(this.transformMatrix, transform)
+        mat4.copy(this.rotateMatrix, rotate)
     }
 
     private setTransformation(parameter?: CubeParameter) {
