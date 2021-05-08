@@ -59,9 +59,14 @@ const vertices = [
         [[block]] struct Uniforms {
             matrix : mat4x4<f32>;
         };
+
+        [[block]] struct Color {
+            color: vec3<f32>;
+        };
         
-        [[binding(0), group(0)]] var<uniform> modelTransform : Uniforms;
-        [[binding(1), group(0)]] var<uniform> cameraTransform : Uniforms;
+        [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
+        [[group(0), binding(2)]] var<uniform> cameraTransform   : Uniforms;
+        [[group(0), binding(1)]] var<storage> color             : [[access(read)]]  Color;
         
         struct VertexOutput {
             [[builtin(position)]] Position : vec4<f32>;
@@ -74,11 +79,10 @@ const vertices = [
         [[stage(vertex)]]
         fn main([[location(0)]] position : vec3<f32>,
                 [[location(1)]] norm : vec3<f32>,
-                [[location(2)]] uv : vec2<f32>,
-                [[location(3)]] color : vec3<f32>) -> VertexOutput {
+                [[location(2)]] uv : vec2<f32>) -> VertexOutput {
             return VertexOutput(
                     cameraTransform.matrix * modelTransform.matrix * vec4<f32>(position, 1.0),  // vertex position
-                    vec4<f32>(color.x, color.y, color.z, 1.0),                                                  // color
+                    vec4<f32>(color.color.xyz, 1.0),                                            // color
                     modelTransform.matrix * vec4<f32>(norm, 1.0),                               // norm vector
                     uv                                                                          // uv
             );
@@ -132,9 +136,9 @@ export class Cube {
     public scaleZ: number = 1;
 
     private defaultColor: Color = {
-        r: 0.8,
-        g: 0.8,
-        b: 0.8,
+        r: 0.9,
+        g: 0.6,
+        b: 0.1,
     }
 
     private matrixSize = 4 * 16; // 4x4 matrix
@@ -147,8 +151,9 @@ export class Cube {
     private uniformBuffer: GPUBuffer;
     private uniformBindGroup: GPUBindGroup;
     private verticesBuffer: GPUBuffer;
+    private colorBuffer: GPUBuffer;
 
-    private perVertex = ( 3 + 3 + 2 + 3 );      // 3 for position, 3 for normal, 2 for uv, 3 for color
+    private perVertex = ( 3 + 3 + 2 );      // 3 for position, 3 for normal, 2 for uv, 3 for color
     private stride = this.perVertex * 4;    // stride = byte length of vertex data array 
 
     constructor(parameter?: CubeParameter, color?: Color) {
@@ -179,12 +184,6 @@ export class Cube {
                                 shaderLocation: 2,
                                 offset: (3 + 3) * 4,
                                 format: 'float32x2',
-                            },
-                            {
-                                // color
-                                shaderLocation: 3,
-                                offset: (3 + 3 + 2) * 4,
-                                format: 'float32x3',
                             },
                         ],
                     } as GPUVertexBufferLayout,
@@ -217,6 +216,15 @@ export class Cube {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
+        this.colorBuffer = device.createBuffer({
+            mappedAtCreation: true,
+            size: Float32Array.BYTES_PER_ELEMENT * 3,
+            usage: GPUBufferUsage.STORAGE,
+        });
+        const colorMapping = new Float32Array(this.colorBuffer.getMappedRange());
+        colorMapping.set(color ? [color.r, color.g, color.b] : [this.defaultColor.r, this.defaultColor.g, this.defaultColor.b], 0);
+        this.colorBuffer.unmap()
+
         this.uniformBindGroup = device.createBindGroup({
             layout: this.renderPipeline.getBindGroupLayout(0),
             entries: [
@@ -230,6 +238,14 @@ export class Cube {
                 },
                 {
                     binding: 1,
+                    resource: {
+                        buffer: this.colorBuffer ,
+                        offset: 0,
+                        size: Float32Array.BYTES_PER_ELEMENT * 3,
+                    },
+                },
+                {
+                    binding: 2,
                     resource: {
                         buffer: cameraUniformBuffer,
                         offset: 0,
@@ -251,8 +267,6 @@ export class Cube {
             mapping.set(vertices[i].pos, this.perVertex * i + 0);
             mapping.set(vertices[i].norm, this.perVertex * i + 3);
             mapping.set(vertices[i].uv, this.perVertex * i + 6);
-            mapping.set(color ? [color.r, color.g, color.b] : [this.defaultColor.r, this.defaultColor.g, this.defaultColor.b], 
-                    this.perVertex * i + 8);
         }
         this.verticesBuffer.unmap();
 
