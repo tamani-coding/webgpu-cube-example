@@ -103,6 +103,9 @@ export interface CubeParameter {
     rotY?: number;
     rotZ?: number;
 
+    scaleX?: number;
+    scaleY?: number;
+    scaleZ?: number;
 }
 
 export class Cube {
@@ -114,6 +117,10 @@ export class Cube {
     public rotX: number = 0;
     public rotY: number = 0;
     public rotZ: number = 0;
+
+    public scaleX: number = 1;
+    public scaleY: number = 1;
+    public scaleZ: number = 1;
 
     private matrixSize = 4 * 16; // 4x4 matrix
     private offset = 256; // uniformBindGroup offset must be 256-byte aligned
@@ -252,8 +259,9 @@ export class Cube {
         mat4.rotateX(modelMatrix, modelMatrix, this.rotX);
         mat4.rotateY(modelMatrix, modelMatrix, this.rotY);
         mat4.rotateZ(modelMatrix, modelMatrix, this.rotZ);
+        mat4.scale(modelMatrix, modelMatrix, vec3.fromValues(this.scaleX, this.scaleY, this.scaleZ))
 
-        // PROJECT ON CAMERA
+        // APPLY
         mat4.copy(this.modelViewProjectionMatrix, modelMatrix)
     }
 
@@ -269,5 +277,9 @@ export class Cube {
         this.rotX = parameter.rotX ? parameter.rotX : 0;
         this.rotY = parameter.rotY ? parameter.rotY : 0;
         this.rotZ = parameter.rotZ ? parameter.rotZ : 0;
+
+        this.scaleX = parameter.scaleX ? parameter.scaleX : 1;
+        this.scaleY = parameter.scaleY ? parameter.scaleY : 1;
+        this.scaleZ = parameter.scaleZ ? parameter.scaleZ : 1;
     }
 }
