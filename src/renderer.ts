@@ -1,8 +1,10 @@
 import { Scene } from './scene';
 import { Camera } from './camera';
+import { lightDataSize } from './scene';
 
 export var device: GPUDevice;
 export var cameraUniformBuffer: GPUBuffer;
+export var lightDataBuffer: GPUBuffer;
 
 async function getDevice() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -66,6 +68,11 @@ export class WebGpuRenderer {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
+        lightDataBuffer = device.createBuffer({
+            size: lightDataSize,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+
         return this.initSuccess = true;
     }
 
@@ -82,6 +89,7 @@ export class WebGpuRenderer {
             return;
         }
 
+        // CAMERA BUFFER
         const cameraViewProjectionMatrix = camera.getCameraViewProjMatrix() as Float32Array;
         device.queue.writeBuffer(
             cameraUniformBuffer,
@@ -89,6 +97,24 @@ export class WebGpuRenderer {
             cameraViewProjectionMatrix.buffer,
             cameraViewProjectionMatrix.byteOffset,
             cameraViewProjectionMatrix.byteLength
+        );
+
+        // LIGHT BUFFER
+        const lightMatrixData = scene.getLightMatrixData() as Float32Array;
+        device.queue.writeBuffer(
+            lightDataBuffer,
+          0,
+          lightMatrixData.buffer,
+          lightMatrixData.byteOffset,
+          lightMatrixData.byteLength
+        );
+        const lightPosition = scene.getLightPosition();
+        device.queue.writeBuffer(
+            lightDataBuffer,
+          64,
+          lightPosition.buffer,
+          lightPosition.byteOffset,
+          lightPosition.byteLength
         );
 
         (this.renderPassDescriptor.colorAttachments as [GPURenderPassColorAttachmentNew])[0].view = this.swapChain

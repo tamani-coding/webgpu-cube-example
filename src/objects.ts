@@ -1,6 +1,6 @@
-import { device, cameraUniformBuffer } from './renderer';
-import { Camera } from './camera';
+import { device, cameraUniformBuffer, lightDataBuffer } from './renderer';
 import { mat4, vec3 } from 'gl-matrix';
+import { lightDataSize } from './scene';
 
 
 const vertices = [
@@ -54,6 +54,13 @@ const vertices = [
     { pos: [-1, -1, -1], norm: [ 0, -1,  0], uv: [1, 1], },
   ];
 
+/** 
+ * 
+ * This shader calculates and outputs position and normal vector of current fragment,
+ * also outputs fragment color and uv.
+ * The result is piped to fragment shader
+ * 
+ * */ 
 function vertxShader(): string {
     return `
             [[block]] struct Uniforms {
@@ -71,45 +78,69 @@ function vertxShader(): string {
             struct VertexOutput {
                 [[builtin(position)]] Position : vec4<f32>;
 
-                [[location(0)]] fragColor : vec4<f32>;
-                [[location(1)]] norm : vec4<f32>;
+                [[location(0)]] fragColor : vec3<f32>;
+                [[location(1)]] fragNorm : vec3<f32>;
                 [[location(2)]] uv : vec2<f32>;
+                [[location(3)]] fragPos : vec3<f32>;
             };
             
             [[stage(vertex)]]
             fn main([[location(0)]] position : vec3<f32>,
                     [[location(1)]] norm : vec3<f32>,
                     [[location(2)]] uv : vec2<f32>) -> VertexOutput {
-                return VertexOutput(
-                        cameraTransform.matrix * modelTransform.matrix * vec4<f32>(position, 1.0),  // vertex position
-                        vec4<f32>(color.color.xyz, 1.0),                                            // color
-                        modelTransform.matrix * vec4<f32>(norm, 1.0),                               // norm vector
-                        uv,                                                                         // uv
-                );
+                var output: VertexOutput;
+
+                output.Position = cameraTransform.matrix * modelTransform.matrix * vec4<f32>(position, 1.0);    // transformed position
+                output.fragColor = color.color;                                                                 // fragment color
+                output.fragNorm = (modelTransform.matrix * vec4<f32>(norm, 1.0)).xyz;                           // transformed normal vector
+                output.uv = uv;                                                                                 // transformed uv
+                output.fragPos = output.Position.xyz;                                                           // again transformed position
+
+                return output;
             }
         `;
 }
 
+/**
+ * This shaders receives the output of the vertex shader program.
+ * If texture is set, the sampler and texture is binded to this shader (conditionally).
+ * Determines the color of the current fragment, takes into account light.
+ * 
+ */
 function fragmentShader(withTexture: boolean): string {
     // conditionally bind sampler and texture
-    const bind = withTexture ? `
-                [[group(0), binding(3)]] var mySampler: sampler;
-                [[group(0), binding(4)]] var myTexture: texture_2d<f32>;
+    const bindSamplerAndTexture = withTexture ? `
+                [[group(0), binding(4)]] var mySampler: sampler;
+                [[group(0), binding(5)]] var myTexture: texture_2d<f32>;
             ` : ``;
 
     // conditionally do texture sampling
     const returnStatement = withTexture ? `
-                                return textureSample(myTexture, mySampler, uv);
+                                return textureSample(myTexture, mySampler, input.uv);
                             ` : `
-                                return fragColor;
+                                return vec4<f32>(input.fragColor, 1.0);
                             `;
 
-    return  bind +
+    return  `
+            [[block]] struct LightData {
+                lightViewProjMatrix : mat4x4<f32>;
+                lightPos : vec3<f32>;
+            };
+
+            struct FragmentInput {
+                [[location(0)]] fragColor : vec3<f32>;
+                [[location(1)]] fragNorm : vec3<f32>;
+                [[location(2)]] uv : vec2<f32>;
+                [[location(3)]] fragPos : vec3<f32>;
+            };
+
+            [[group(0), binding(3)]] var<uniform> lightData         : LightData;
+            `
+            + bindSamplerAndTexture +
             `
             [[stage(fragment)]]
-            fn main([[location(0)]] fragColor : vec4<f32>,
-                    [[location(1)]] norm : vec4<f32>,
-                    [[location(2)]] uv : vec2<f32>) -> [[location(0)]] vec4<f32> {
+            fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
+                let lambertFactor : f32 = abs(dot(normalize(lightData.lightPos - input.fragPos), input.fragNorm));
         ` + 
                 returnStatement +
         `
@@ -271,6 +302,14 @@ export class Cube {
                     size: this.matrixSize,
                 },
             },
+            {
+                binding: 3,
+                resource: {
+                    buffer: lightDataBuffer,
+                    offset: 0,
+                    size: lightDataSize,
+                },
+            },
             
         ];
 
@@ -292,11 +331,11 @@ export class Cube {
             });
 
             entries.push({
-                binding: 3,
+                binding: 4,
                 resource: sampler,
             } as any)
             entries.push({
-                binding: 4,
+                binding: 5,
                 resource: cubeTexture.createView(),
             } as any);
 
