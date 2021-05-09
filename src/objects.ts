@@ -216,15 +216,15 @@ export class Cube {
     }
 
     private matrixSize = 4 * 16; // 4x4 matrix
-    private offset = 256; // uniformBindGroup offset must be 256-byte aligned
+    private offset = 256; // transformationBindGroup offset must be 256-byte aligned
     private uniformBufferSize = this.offset + 2 * this.matrixSize;
 
     private transformMatrix = mat4.create() as Float32Array;
     private rotateMatrix = mat4.create() as Float32Array;
 
     private renderPipeline: GPURenderPipeline;
-    private uniformBuffer: GPUBuffer;
-    private uniformBindGroup: GPUBindGroup;
+    private transformationBuffer: GPUBuffer;
+    private transformationBindGroup: GPUBindGroup;
     private verticesBuffer: GPUBuffer;
     private colorBuffer: GPUBuffer;
 
@@ -302,7 +302,7 @@ export class Cube {
         }
         this.verticesBuffer.unmap();
 
-        this.uniformBuffer = device.createBuffer({
+        this.transformationBuffer = device.createBuffer({
             size: this.uniformBufferSize,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
@@ -320,7 +320,7 @@ export class Cube {
             {
                 binding: 0,
                 resource: {
-                    buffer: this.uniformBuffer,
+                    buffer: this.transformationBuffer,
                     offset: 0,
                     size: this.matrixSize * 2,
                 },
@@ -380,7 +380,7 @@ export class Cube {
 
         }
 
-        this.uniformBindGroup = device.createBindGroup({
+        this.transformationBindGroup = device.createBindGroup({
             layout: this.renderPipeline.getBindGroupLayout(0),
             entries: entries as Iterable<GPUBindGroupEntry>,
         });
@@ -391,21 +391,21 @@ export class Cube {
 
         passEncoder.setPipeline(this.renderPipeline);
         device.queue.writeBuffer(
-            this.uniformBuffer,
+            this.transformationBuffer,
             0,
             this.transformMatrix.buffer,
             this.transformMatrix.byteOffset,
             this.transformMatrix.byteLength
         );
         device.queue.writeBuffer(
-            this.uniformBuffer,
+            this.transformationBuffer,
             64,
             this.rotateMatrix.buffer,
             this.rotateMatrix.byteOffset,
             this.rotateMatrix.byteLength
         );
         passEncoder.setVertexBuffer(0, this.verticesBuffer);
-        passEncoder.setBindGroup(0, this.uniformBindGroup);
+        passEncoder.setBindGroup(0, this.transformationBindGroup);
         passEncoder.draw(vertices.length, 1, 0, 0);
     }
 
