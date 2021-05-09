@@ -233,16 +233,13 @@ export class Cube {
 
     constructor(parameter?: CubeParameter, color?: Color, imageBitmap?: ImageBitmap) {
         this.setTransformation(parameter);
-
         this.renderPipeline = device.createRenderPipeline({
             vertex: {
-                module: device.createShaderModule({
-                    code: vertxShader(),
-                }),
+                module: device.createShaderModule({ code: vertxShader(),}),
                 entryPoint: 'main',
                 buffers: [
                     {
-                        arrayStride: this.stride,
+                        arrayStride: this.stride, // ( 3 (pos) + 3 (norm) + 2 (uv) ) * 4 bytes
                         attributes: [
                             {
                                 // position
@@ -267,9 +264,7 @@ export class Cube {
                 ],
             },
             fragment: {
-                module: device.createShaderModule({
-                    code: fragmentShader(imageBitmap != null),
-                }),
+                module: device.createShaderModule({ code: fragmentShader(imageBitmap != null), }),
                 entryPoint: 'main',
                 targets: [
                     {
@@ -289,6 +284,23 @@ export class Cube {
                 format: 'depth24plus-stencil8',
             },
         });
+
+        this.verticesBuffer = device.createBuffer({
+            size: vertices.length * this.stride,
+            usage: GPUBufferUsage.VERTEX,
+            mappedAtCreation: true,
+        });
+
+        const mapping = new Float32Array(this.verticesBuffer.getMappedRange());
+        for (let i = 0; i < vertices.length; i++) {
+            // (3 * 4) + (3 * 4) + (2 * 4)
+            mapping.set([vertices[i].pos[0] * this.scaleX, 
+                        vertices[i].pos[1] * this.scaleY, 
+                        vertices[i].pos[2] * this.scaleZ], this.perVertex * i + 0);
+            mapping.set(vertices[i].norm, this.perVertex * i + 3);
+            mapping.set(vertices[i].uv, this.perVertex * i + 6);
+        }
+        this.verticesBuffer.unmap();
 
         this.uniformBuffer = device.createBuffer({
             size: this.uniformBufferSize,
@@ -372,23 +384,6 @@ export class Cube {
             layout: this.renderPipeline.getBindGroupLayout(0),
             entries: entries as Iterable<GPUBindGroupEntry>,
         });
-
-        this.verticesBuffer = device.createBuffer({
-            size: vertices.length * this.stride,
-            usage: GPUBufferUsage.VERTEX,
-            mappedAtCreation: true,
-        });
-
-        const mapping = new Float32Array(this.verticesBuffer.getMappedRange());
-        for (let i = 0; i < vertices.length; i++) {
-            // (3 * 4) + (3 * 4) + (2 * 4)
-            mapping.set([vertices[i].pos[0] * this.scaleX, 
-                        vertices[i].pos[1] * this.scaleY, 
-                        vertices[i].pos[2] * this.scaleZ], this.perVertex * i + 0);
-            mapping.set(vertices[i].norm, this.perVertex * i + 3);
-            mapping.set(vertices[i].uv, this.perVertex * i + 6);
-        }
-        this.verticesBuffer.unmap();
     }
 
     public draw(passEncoder: GPURenderPassEncoder, device: GPUDevice) {
