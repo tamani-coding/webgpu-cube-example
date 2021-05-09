@@ -1,5 +1,7 @@
 # webgpu-cube-example
 
+![Screenshot](https://github.com/tamani-coding/webgpu-cube-example/blob/main/screenshot.png?raw=true)
+
 Make sure your browser supports webGPU.
 
 For example download chrome canary and call:
