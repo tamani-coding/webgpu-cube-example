@@ -217,7 +217,7 @@ export class Cube {
 
     private matrixSize = 4 * 16; // 4x4 matrix
     private offset = 256; // transformationBindGroup offset must be 256-byte aligned
-    private uniformBufferSize = this.offset + 2 * this.matrixSize;
+    private uniformBufferSize = this.offset;
 
     private transformMatrix = mat4.create() as Float32Array;
     private rotateMatrix = mat4.create() as Float32Array;
