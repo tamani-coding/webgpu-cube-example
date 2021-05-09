@@ -102,9 +102,9 @@ renderer.init(outputCanvas).then((success) => {
         scene.pointLightPosition[0] = Math.cos(now) * 4;
         scene.pointLightPosition[1] = Math.sin(now) * 4;
         scene.pointLightPosition[2] = 2;
-        lightDebugCube.x = Math.cos(now) * 4;
-        lightDebugCube.y = Math.sin(now) * 4;
-        lightDebugCube.z = 2;
+        lightDebugCube.x = scene.pointLightPosition[0]
+        lightDebugCube.y = scene.pointLightPosition[1]
+        lightDebugCube.z = scene.pointLightPosition[2]
 
         // RENDER
         renderer.frame(camera, scene);

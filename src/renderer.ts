@@ -55,7 +55,7 @@ export class WebGpuRenderer {
                 {
                     // attachment is acquired and set in render loop.
                     view: undefined,
-                    loadValue: { r: 0.7, g: 0.7, b: 0.7, a: 1.0 },
+                    loadValue: { r: 0.25, g: 0.25, b: 0.25, a: 1.0 },
                 } as GPURenderPassColorAttachmentNew,
             ],
             depthStencilAttachment: {
