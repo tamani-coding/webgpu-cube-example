@@ -50,7 +50,6 @@ export class WebGpuRenderer {
             format: this.swapChainFormat,
         });
 
-        const depthTextureView = this.depthTextureView(canvas);
         this.renderPassDescriptor = {
             colorAttachments: [
                 {
@@ -60,7 +59,7 @@ export class WebGpuRenderer {
                 } as GPURenderPassColorAttachmentNew,
             ],
             depthStencilAttachment: {
-                view: depthTextureView,
+                view: this.depthTextureView(canvas),
 
                 depthLoadValue: 1.0,
                 depthStoreOp: 'store',
