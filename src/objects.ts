@@ -79,7 +79,7 @@ function vertxShader(): string {
             // bind model/camera/color buffers
             [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
             [[group(0), binding(2)]] var<uniform> cameraTransform   : Camera;
-            [[group(0), binding(1)]] var<storage> color             : [[access(read)]]  Color;
+            [[group(0), binding(1)]] var<storage,read> color             : Color;
             
             // output struct of this vertex shader
             struct VertexOutput {
@@ -357,10 +357,10 @@ export class Cube {
             let cubeTexture = device.createTexture({
                 size: [imageBitmap.width, imageBitmap.height, 1],
                 format: 'rgba8unorm',
-                usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST,
+                usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
             });
-            device.queue.copyImageBitmapToTexture(
-                { imageBitmap },
+            device.queue.copyExternalImageToTexture(
+                { source: imageBitmap },
                 { texture: cubeTexture },
                 [imageBitmap.width, imageBitmap.height, 1]
             );
