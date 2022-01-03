@@ -63,16 +63,16 @@ const vertices = [
  * */ 
 function vertxShader(): string {
     return `
-            [[block]] struct Uniforms {     // 4x4 transform matrices
+            struct Uniforms {     // 4x4 transform matrices
                 transform : mat4x4<f32>;    // translate AND rotate
                 rotate : mat4x4<f32>;       // rotate only
             };
 
-            [[block]] struct Camera {     // 4x4 transform matrix
+            struct Camera {     // 4x4 transform matrix
                 matrix : mat4x4<f32>;
             };
 
-            [[block]] struct Color {        // RGB color
+            struct Color {        // RGB color
                 color: vec3<f32>;
             };
             
@@ -135,7 +135,7 @@ function fragmentShader(withTexture: boolean): string {
                             `;
 
     return  `
-            [[block]] struct LightData {        // light xyz position
+            struct LightData {        // light xyz position
                 lightPos : vec3<f32>;
             };
 
@@ -357,7 +357,7 @@ export class Cube {
             let cubeTexture = device.createTexture({
                 size: [imageBitmap.width, imageBitmap.height, 1],
                 format: 'rgba8unorm',
-                usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
             });
             device.queue.copyExternalImageToTexture(
                 { source: imageBitmap },
