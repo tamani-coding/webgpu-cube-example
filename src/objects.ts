@@ -77,28 +77,28 @@ function vertxShader(): string {
             };
             
             // bind model/camera/color buffers
-            [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
-            [[group(0), binding(2)]] var<uniform> cameraTransform   : Camera;
-            [[group(0), binding(1)]] var<storage,read> color             : Color;
+            @group(0) @binding(0) var<uniform> modelTransform    : Uniforms;
+            @group(0) @binding(2) var<uniform> cameraTransform   : Camera;
+            @group(0) @binding(1) var<storage,read> color             : Color;
             
             // output struct of this vertex shader
             struct VertexOutput {
-                [[builtin(position)]] Position : vec4<f32>;
+                @builtin(position) Position : vec4<f32>;
 
-                [[location(0)]] fragColor : vec3<f32>;
-                [[location(1)]] fragNorm : vec3<f32>;
-                [[location(2)]] uv : vec2<f32>;
-                [[location(3)]] fragPos : vec3<f32>;
+                @location(0) fragColor : vec3<f32>;
+                @location(1) fragNorm : vec3<f32>;
+                @location(2) uv : vec2<f32>;
+                @location(3) fragPos : vec3<f32>;
             };
 
             // input struct according to vertex buffer stride
             struct VertexInput {
-                [[location(0)]] position : vec3<f32>;
-                [[location(1)]] norm : vec3<f32>;
-                [[location(2)]] uv : vec2<f32>;
+                @location(0) position : vec3<f32>;
+                @location(1) norm : vec3<f32>;
+                @location(2) uv : vec2<f32>;
             };
             
-            [[stage(vertex)]]
+            @stage(vertex)
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
                 var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(input.position, 1.0);
@@ -123,8 +123,8 @@ function vertxShader(): string {
 function fragmentShader(withTexture: boolean): string {
     // conditionally bind sampler and texture, only if texture is set
     const bindSamplerAndTexture = withTexture ? `
-                [[group(0), binding(4)]] var mySampler: sampler;
-                [[group(0), binding(5)]] var myTexture: texture_2d<f32>;
+                @group(0) @binding(4) var mySampler: sampler;
+                @group(0) @binding(5) var myTexture: texture_2d<f32>;
             ` : ``;
 
     // conditionally do texture sampling
@@ -140,22 +140,22 @@ function fragmentShader(withTexture: boolean): string {
             };
 
             struct FragmentInput {              // output from vertex stage shader
-                [[location(0)]] fragColor : vec3<f32>;
-                [[location(1)]] fragNorm : vec3<f32>;
-                [[location(2)]] uv : vec2<f32>;
-                [[location(3)]] fragPos : vec3<f32>;
+                @location(0) fragColor : vec3<f32>;
+                @location(1) fragNorm : vec3<f32>;
+                @location(2) uv : vec2<f32>;
+                @location(3) fragPos : vec3<f32>;
             };
 
             // bind light data buffer
-            [[group(0), binding(3)]] var<uniform> lightData : LightData;
+            @group(0) @binding(3) var<uniform> lightData : LightData;
 
             // constants for light
             let ambientLightFactor : f32 = 0.25;     // ambient light
             `
             + bindSamplerAndTexture +
             `
-            [[stage(fragment)]]
-            fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
+            @stage(fragment)
+            fn main(input : FragmentInput) -> @location(0) vec4<f32> {
                 let lightDirection: vec3<f32> = normalize(lightData.lightPos - input.fragPos);
 
                 // lambert factor

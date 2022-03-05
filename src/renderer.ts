@@ -53,15 +53,19 @@ export class WebGpuRenderer {
                 {
                     // attachment is acquired and set in render loop.
                     view: undefined,
-                    loadValue: { r: 0.25, g: 0.25, b: 0.25, a: 1.0 },
+                    loadOp: 'clear',
+                    clearValue: { r: 0.25, g: 0.25, b: 0.25, a: 1.0 }, 
+                    storeOp: 'store',
                 } as GPURenderPassColorAttachment,
             ],
             depthStencilAttachment: {
                 view: this.depthTextureView(),
 
-                depthLoadValue: 1.0,
+                depthLoadOp: 'clear',
+                depthClearValue: 1.0,
                 depthStoreOp: 'store',
-                stencilLoadValue: 0,
+                stencilLoadOp: 'clear',
+                stencilClearValue: 0,
                 stencilStoreOp: 'store',
             } as GPURenderPassDepthStencilAttachment,
         };
@@ -123,7 +127,7 @@ export class WebGpuRenderer {
             object.draw(passEncoder, device)
         }
 
-        passEncoder.endPass();
+        passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
     }
 
