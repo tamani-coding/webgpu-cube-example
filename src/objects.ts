@@ -233,56 +233,100 @@ export class Cube {
 
     constructor(parameter?: CubeParameter, color?: Color, imageBitmap?: ImageBitmap) {
         this.setTransformation(parameter);
+
+        const bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
+            entries: [
+                {
+                  binding: 0,
+                  visibility: GPUShaderStage.VERTEX,
+                  buffer: { type: "uniform" },
+                },
+                {
+                  binding: 1,
+                  visibility: GPUShaderStage.VERTEX,
+                  buffer: { type: "read-only-storage" },
+                },
+                {
+                  binding: 2,
+                  visibility: GPUShaderStage.VERTEX,
+                  buffer: { type: "uniform" },
+                },
+                {
+                  binding: 3,
+                  visibility: GPUShaderStage.FRAGMENT,
+                  buffer: { type: "uniform" },
+                },
+              ] as Iterable<GPUBindGroupLayoutEntry>,
+        }
+        if (imageBitmap) {
+          (
+            bindGroupLayoutDescriptor.entries as Array<GPUBindGroupLayoutEntry>
+          ).push(
+            {
+              binding: 4,
+              visibility: GPUShaderStage.FRAGMENT,
+              sampler: {},
+            },
+            { binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: {} }
+          );
+        }
+        const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
+      
         this.renderPipeline = device.createRenderPipeline({
-            vertex: {
-                module: device.createShaderModule({ code: vertxShader(),}),
-                entryPoint: 'main',
-                buffers: [
-                    {
-                        arrayStride: this.stride, // ( 3 (pos) + 3 (norm) + 2 (uv) ) * 4 bytes
-                        attributes: [
-                            {
-                                // position
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x3',
-                            },
-                            {
-                                // norm
-                                shaderLocation: 1,
-                                offset: 3 * 4,
-                                format: 'float32x3',
-                            },
-                            {
-                                // uv
-                                shaderLocation: 2,
-                                offset: (3 + 3) * 4,
-                                format: 'float32x2',
-                            },
-                        ],
-                    } as GPUVertexBufferLayout,
+          vertex: {
+            module: device.createShaderModule({ code: vertxShader() }),
+            entryPoint: "main",
+            buffers: [
+              {
+                arrayStride: this.stride, // ( 3 (pos) + 3 (norm) + 2 (uv) ) * 4 bytes
+                attributes: [
+                  {
+                    // position
+                    shaderLocation: 0,
+                    offset: 0,
+                    format: "float32x3",
+                  },
+                  {
+                    // norm
+                    shaderLocation: 1,
+                    offset: 3 * 4,
+                    format: "float32x3",
+                  },
+                  {
+                    // uv
+                    shaderLocation: 2,
+                    offset: (3 + 3) * 4,
+                    format: "float32x2",
+                  },
                 ],
-            },
-            fragment: {
-                module: device.createShaderModule({ code: fragmentShader(imageBitmap != null), }),
-                entryPoint: 'main',
-                targets: [
-                    {
-                        format: 'bgra8unorm' as GPUTextureFormat,
-                    },
-                ],
-            },
-            primitive: {
-                topology: 'triangle-list',
-                cullMode: 'back',
-            },
-            // Enable depth testing so that the fragment closest to the camera
-            // is rendered in front.
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: 'less',
-                format: 'depth24plus-stencil8',
-            },
+              } as GPUVertexBufferLayout,
+            ],
+          },
+          fragment: {
+            module: device.createShaderModule({
+              code: fragmentShader(imageBitmap != null),
+            }),
+            entryPoint: "main",
+            targets: [
+              {
+                format: "bgra8unorm" as GPUTextureFormat,
+              },
+            ],
+          },
+          primitive: {
+            topology: "triangle-list",
+            cullMode: "back",
+          },
+          // Enable depth testing so that the fragment closest to the camera
+          // is rendered in front.
+          depthStencil: {
+            depthWriteEnabled: true,
+            depthCompare: "less",
+            format: "depth24plus-stencil8",
+          },
+          layout: device.createPipelineLayout({
+            bindGroupLayouts: [bindGroupLayout],
+          }),
         });
 
         this.verticesBuffer = device.createBuffer({
