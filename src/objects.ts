@@ -353,11 +353,11 @@ export class Cube {
 
         this.colorBuffer = device.createBuffer({
             mappedAtCreation: true,
-            size: Float32Array.BYTES_PER_ELEMENT * 3,
+            size: 16,
             usage: GPUBufferUsage.STORAGE,
         });
         const colorMapping = new Float32Array(this.colorBuffer.getMappedRange());
-        colorMapping.set(color ? [color.r, color.g, color.b] : [this.defaultColor.r, this.defaultColor.g, this.defaultColor.b], 0);
+        colorMapping.set(color ? [color.r, color.g, color.b, 1.0] : [this.defaultColor.r, this.defaultColor.g, this.defaultColor.b, 1.0], 0);
         this.colorBuffer.unmap()
 
         const entries = [
@@ -374,7 +374,7 @@ export class Cube {
                 resource: {
                     buffer: this.colorBuffer ,
                     offset: 0,
-                    size: Float32Array.BYTES_PER_ELEMENT * 3,
+                    size: 16,
                 },
             },
             {
