@@ -64,16 +64,16 @@ const vertices = [
 function vertxShader(): string {
     return `
             struct Uniforms {     // 4x4 transform matrices
-                transform : mat4x4<f32>;    // translate AND rotate
-                rotate : mat4x4<f32>;       // rotate only
+                transform : mat4x4<f32>,   // translate AND rotate
+                rotate : mat4x4<f32>,      // rotate only
             };
 
             struct Camera {     // 4x4 transform matrix
-                matrix : mat4x4<f32>;
+                matrix : mat4x4<f32>,
             };
 
             struct Color {        // RGB color
-                color: vec3<f32>;
+                color: vec3<f32>,
             };
             
             // bind model/camera/color buffers
@@ -83,22 +83,22 @@ function vertxShader(): string {
             
             // output struct of this vertex shader
             struct VertexOutput {
-                @builtin(position) Position : vec4<f32>;
+                @builtin(position) Position : vec4<f32>,
 
-                @location(0) fragColor : vec3<f32>;
-                @location(1) fragNorm : vec3<f32>;
-                @location(2) uv : vec2<f32>;
-                @location(3) fragPos : vec3<f32>;
+                @location(0) fragColor : vec3<f32>,
+                @location(1) fragNorm : vec3<f32>,
+                @location(2) uv : vec2<f32>,
+                @location(3) fragPos : vec3<f32>,
             };
 
             // input struct according to vertex buffer stride
             struct VertexInput {
-                @location(0) position : vec3<f32>;
-                @location(1) norm : vec3<f32>;
-                @location(2) uv : vec2<f32>;
+                @location(0) position : vec3<f32>,
+                @location(1) norm : vec3<f32>,
+                @location(2) uv : vec2<f32>,
             };
             
-            @stage(vertex)
+            @vertex
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
                 var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(input.position, 1.0);
@@ -136,25 +136,25 @@ function fragmentShader(withTexture: boolean): string {
 
     return  `
             struct LightData {        // light xyz position
-                lightPos : vec3<f32>;
+                lightPos : vec3<f32>,
             };
 
             struct FragmentInput {              // output from vertex stage shader
-                @location(0) fragColor : vec3<f32>;
-                @location(1) fragNorm : vec3<f32>;
-                @location(2) uv : vec2<f32>;
-                @location(3) fragPos : vec3<f32>;
+                @location(0) fragColor : vec3<f32>,
+                @location(1) fragNorm : vec3<f32>,
+                @location(2) uv : vec2<f32>,
+                @location(3) fragPos : vec3<f32>,
             };
 
             // bind light data buffer
             @group(0) @binding(3) var<uniform> lightData : LightData;
 
             // constants for light
-            let ambientLightFactor : f32 = 0.25;     // ambient light
+            const ambientLightFactor : f32 = 0.25;     // ambient light
             `
             + bindSamplerAndTexture +
             `
-            @stage(fragment)
+            @fragment
             fn main(input : FragmentInput) -> @location(0) vec4<f32> {
                 let lightDirection: vec3<f32> = normalize(lightData.lightPos - input.fragPos);
 
@@ -233,56 +233,100 @@ export class Cube {
 
     constructor(parameter?: CubeParameter, color?: Color, imageBitmap?: ImageBitmap) {
         this.setTransformation(parameter);
+
+        const bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
+            entries: [
+                {
+                  binding: 0,
+                  visibility: GPUShaderStage.VERTEX,
+                  buffer: { type: "uniform" },
+                },
+                {
+                  binding: 1,
+                  visibility: GPUShaderStage.VERTEX,
+                  buffer: { type: "read-only-storage" },
+                },
+                {
+                  binding: 2,
+                  visibility: GPUShaderStage.VERTEX,
+                  buffer: { type: "uniform" },
+                },
+                {
+                  binding: 3,
+                  visibility: GPUShaderStage.FRAGMENT,
+                  buffer: { type: "uniform" },
+                },
+              ] as Iterable<GPUBindGroupLayoutEntry>,
+        }
+        if (imageBitmap) {
+          (
+            bindGroupLayoutDescriptor.entries as Array<GPUBindGroupLayoutEntry>
+          ).push(
+            {
+              binding: 4,
+              visibility: GPUShaderStage.FRAGMENT,
+              sampler: {},
+            },
+            { binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: {} }
+          );
+        }
+        const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
+      
         this.renderPipeline = device.createRenderPipeline({
-            vertex: {
-                module: device.createShaderModule({ code: vertxShader(),}),
-                entryPoint: 'main',
-                buffers: [
-                    {
-                        arrayStride: this.stride, // ( 3 (pos) + 3 (norm) + 2 (uv) ) * 4 bytes
-                        attributes: [
-                            {
-                                // position
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x3',
-                            },
-                            {
-                                // norm
-                                shaderLocation: 1,
-                                offset: 3 * 4,
-                                format: 'float32x3',
-                            },
-                            {
-                                // uv
-                                shaderLocation: 2,
-                                offset: (3 + 3) * 4,
-                                format: 'float32x2',
-                            },
-                        ],
-                    } as GPUVertexBufferLayout,
+          vertex: {
+            module: device.createShaderModule({ code: vertxShader() }),
+            entryPoint: "main",
+            buffers: [
+              {
+                arrayStride: this.stride, // ( 3 (pos) + 3 (norm) + 2 (uv) ) * 4 bytes
+                attributes: [
+                  {
+                    // position
+                    shaderLocation: 0,
+                    offset: 0,
+                    format: "float32x3",
+                  },
+                  {
+                    // norm
+                    shaderLocation: 1,
+                    offset: 3 * 4,
+                    format: "float32x3",
+                  },
+                  {
+                    // uv
+                    shaderLocation: 2,
+                    offset: (3 + 3) * 4,
+                    format: "float32x2",
+                  },
                 ],
-            },
-            fragment: {
-                module: device.createShaderModule({ code: fragmentShader(imageBitmap != null), }),
-                entryPoint: 'main',
-                targets: [
-                    {
-                        format: 'bgra8unorm' as GPUTextureFormat,
-                    },
-                ],
-            },
-            primitive: {
-                topology: 'triangle-list',
-                cullMode: 'back',
-            },
-            // Enable depth testing so that the fragment closest to the camera
-            // is rendered in front.
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: 'less',
-                format: 'depth24plus-stencil8',
-            },
+              } as GPUVertexBufferLayout,
+            ],
+          },
+          fragment: {
+            module: device.createShaderModule({
+              code: fragmentShader(imageBitmap != null),
+            }),
+            entryPoint: "main",
+            targets: [
+              {
+                format: "bgra8unorm" as GPUTextureFormat,
+              },
+            ],
+          },
+          primitive: {
+            topology: "triangle-list",
+            cullMode: "back",
+          },
+          // Enable depth testing so that the fragment closest to the camera
+          // is rendered in front.
+          depthStencil: {
+            depthWriteEnabled: true,
+            depthCompare: "less",
+            format: "depth24plus-stencil8",
+          },
+          layout: device.createPipelineLayout({
+            bindGroupLayouts: [bindGroupLayout],
+          }),
         });
 
         this.verticesBuffer = device.createBuffer({
@@ -309,11 +353,11 @@ export class Cube {
 
         this.colorBuffer = device.createBuffer({
             mappedAtCreation: true,
-            size: Float32Array.BYTES_PER_ELEMENT * 3,
+            size: 16,
             usage: GPUBufferUsage.STORAGE,
         });
         const colorMapping = new Float32Array(this.colorBuffer.getMappedRange());
-        colorMapping.set(color ? [color.r, color.g, color.b] : [this.defaultColor.r, this.defaultColor.g, this.defaultColor.b], 0);
+        colorMapping.set(color ? [color.r, color.g, color.b, 1.0] : [this.defaultColor.r, this.defaultColor.g, this.defaultColor.b, 1.0], 0);
         this.colorBuffer.unmap()
 
         const entries = [
@@ -330,7 +374,7 @@ export class Cube {
                 resource: {
                     buffer: this.colorBuffer ,
                     offset: 0,
-                    size: Float32Array.BYTES_PER_ELEMENT * 3,
+                    size: 16,
                 },
             },
             {
