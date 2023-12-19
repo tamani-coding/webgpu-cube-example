@@ -59,7 +59,7 @@ export class WebGpuRenderer {
                 } as GPURenderPassColorAttachment,
             ],
             depthStencilAttachment: {
-                view: this.depthTextureView(),
+                view: this.depthTextureView(canvas),
 
                 depthLoadOp: 'clear',
                 depthClearValue: 1.0,
@@ -88,7 +88,7 @@ export class WebGpuRenderer {
             return;
         }
 
-        this.updateRenderPassDescriptor();
+        this.updateRenderPassDescriptor(canvas);
     }
 
     public frame(camera: Camera, scene: Scene) {
@@ -131,15 +131,18 @@ export class WebGpuRenderer {
         device.queue.submit([commandEncoder.finish()]);
     }
 
-    private depthTextureView() {
+    private depthTextureView(canvas: HTMLCanvasElement) {
         return device.createTexture({
-            size: this.presentationSize,
+            size: [
+                canvas.clientWidth, //* devicePixelRatio,
+                canvas.clientHeight, //  * devicePixelRatio,
+            ],
             format: 'depth24plus-stencil8',
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         }).createView();
     }
 
-    private updateRenderPassDescriptor() {
-        (this.renderPassDescriptor.depthStencilAttachment as GPURenderPassDepthStencilAttachment).view = this.depthTextureView();
+    private updateRenderPassDescriptor(canvas: HTMLCanvasElement) {
+        (this.renderPassDescriptor.depthStencilAttachment as GPURenderPassDepthStencilAttachment).view = this.depthTextureView(canvas);
     }
 }
