@@ -1,7 +1,7 @@
 import { vec3 } from 'gl-matrix';
 import { Cube } from './objects';
 
-export const lightDataSize = 3 * 4; // vec3 size in bytes
+export const lightDataSize = 3 * 4 + 4; // vec3 size in bytes
 
 export class Scene {
 

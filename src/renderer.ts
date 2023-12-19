@@ -36,7 +36,7 @@ export class WebGpuRenderer {
 
         this.context = canvas.getContext('webgpu');
 
-        this.presentationFormat = this.context.getPreferredFormat(adapter);
+        this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
         this.presentationSize = [
             canvas.clientWidth * devicePixelRatio,
             canvas.clientHeight  * devicePixelRatio,
@@ -45,7 +45,7 @@ export class WebGpuRenderer {
         this.context.configure({
             device,
             format: this.presentationFormat,
-            size: this.presentationSize,
+            alphaMode: 'premultiplied',
         });
 
         this.renderPassDescriptor = {

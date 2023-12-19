@@ -64,16 +64,16 @@ const vertices = [
 function vertxShader(): string {
     return `
             struct Uniforms {     // 4x4 transform matrices
-                transform : mat4x4<f32>;    // translate AND rotate
-                rotate : mat4x4<f32>;       // rotate only
+                transform : mat4x4<f32>,    // translate AND rotate
+                rotate : mat4x4<f32>,       // rotate only
             };
 
             struct Camera {     // 4x4 transform matrix
-                matrix : mat4x4<f32>;
+                matrix : mat4x4<f32>,
             };
 
             struct Color {        // RGB color
-                color: vec3<f32>;
+                color: vec3<f32>,
             };
             
             // bind model/camera/color buffers
@@ -83,22 +83,22 @@ function vertxShader(): string {
             
             // output struct of this vertex shader
             struct VertexOutput {
-                @builtin(position) Position : vec4<f32>;
+                @builtin(position) Position : vec4<f32>,
 
-                @location(0) fragColor : vec3<f32>;
-                @location(1) fragNorm : vec3<f32>;
-                @location(2) uv : vec2<f32>;
-                @location(3) fragPos : vec3<f32>;
+                @location(0) fragColor : vec3<f32>,
+                @location(1) fragNorm : vec3<f32>,
+                @location(2) uv : vec2<f32>,
+                @location(3) fragPos : vec3<f32>,
             };
 
             // input struct according to vertex buffer stride
             struct VertexInput {
-                @location(0) position : vec3<f32>;
-                @location(1) norm : vec3<f32>;
-                @location(2) uv : vec2<f32>;
+                @location(0) position : vec3<f32>,
+                @location(1) norm : vec3<f32>,
+                @location(2) uv : vec2<f32>,
             };
             
-            @stage(vertex)
+            @vertex
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
                 var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(input.position, 1.0);
@@ -136,25 +136,25 @@ function fragmentShader(withTexture: boolean): string {
 
     return  `
             struct LightData {        // light xyz position
-                lightPos : vec3<f32>;
+                lightPos : vec3<f32>,
             };
 
             struct FragmentInput {              // output from vertex stage shader
-                @location(0) fragColor : vec3<f32>;
-                @location(1) fragNorm : vec3<f32>;
-                @location(2) uv : vec2<f32>;
-                @location(3) fragPos : vec3<f32>;
+                @location(0) fragColor : vec3<f32>,
+                @location(1) fragNorm : vec3<f32>,
+                @location(2) uv : vec2<f32>,
+                @location(3) fragPos : vec3<f32>,
             };
 
             // bind light data buffer
             @group(0) @binding(3) var<uniform> lightData : LightData;
 
             // constants for light
-            let ambientLightFactor : f32 = 0.25;     // ambient light
+            const ambientLightFactor : f32 = 0.25;     // ambient light
             `
             + bindSamplerAndTexture +
             `
-            @stage(fragment)
+            @fragment
             fn main(input : FragmentInput) -> @location(0) vec4<f32> {
                 let lightDirection: vec3<f32> = normalize(lightData.lightPos - input.fragPos);
 
@@ -234,6 +234,7 @@ export class Cube {
     constructor(parameter?: CubeParameter, color?: Color, imageBitmap?: ImageBitmap) {
         this.setTransformation(parameter);
         this.renderPipeline = device.createRenderPipeline({
+            layout: 'auto',
             vertex: {
                 module: device.createShaderModule({ code: vertxShader(),}),
                 entryPoint: 'main',
@@ -283,7 +284,7 @@ export class Cube {
                 depthCompare: 'less',
                 format: 'depth24plus-stencil8',
             },
-        });
+        } as unknown as GPURenderPipelineDescriptor);
 
         this.verticesBuffer = device.createBuffer({
             size: vertices.length * this.stride,
@@ -309,7 +310,7 @@ export class Cube {
 
         this.colorBuffer = device.createBuffer({
             mappedAtCreation: true,
-            size: Float32Array.BYTES_PER_ELEMENT * 3,
+            size: Float32Array.BYTES_PER_ELEMENT * 3 + 4,
             usage: GPUBufferUsage.STORAGE,
         });
         const colorMapping = new Float32Array(this.colorBuffer.getMappedRange());
@@ -330,7 +331,7 @@ export class Cube {
                 resource: {
                     buffer: this.colorBuffer ,
                     offset: 0,
-                    size: Float32Array.BYTES_PER_ELEMENT * 3,
+                    size: Float32Array.BYTES_PER_ELEMENT * 3 + 4,
                 },
             },
             {
